@@ -15,7 +15,7 @@
     "tiben/crontab-manager": "^1.4",
     "psr/container": "^1.1|^2.0",
     "tourze/bundle-dependency": "0.0.*",
-    "tourze/symfony-async-message-bundle": "0.0.*"
+    "tourze/symfony-async-bundle": "0.0.*"
   },
   "autoload": {
     "psr-4": {

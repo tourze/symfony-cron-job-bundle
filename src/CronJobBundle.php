@@ -4,14 +4,14 @@ namespace Tourze\Symfony\CronJob;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 use Tourze\BundleDependency\BundleDependencyInterface;
-use Tourze\Symfony\AsyncMessage\AsyncMessageBundle;
+use Tourze\Symfony\Async\AsyncBundle;
 
 class CronJobBundle extends Bundle implements BundleDependencyInterface
 {
     public static function getBundleDependencies(): array
     {
         return [
-            AsyncMessageBundle::class => ['all' => true],
+            AsyncBundle::class => ['all' => true],
         ];
     }
 }

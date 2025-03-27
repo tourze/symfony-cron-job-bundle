@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Tourze\DoctrineHelper\ReflectionHelper;
-use Tourze\Symfony\AsyncMessage\Message\RunCommandMessage;
+use Tourze\Symfony\Async\Message\RunCommandMessage;
 use Tourze\Symfony\CronJob\Attribute\AsCronTask;
 use Tourze\Symfony\CronJob\Provider\CronCommandProvider;
 use Tourze\Symfony\CronJob\Request\CommandRequest;
