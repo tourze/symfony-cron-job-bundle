@@ -6,9 +6,11 @@
     "php": "^8.1",
     "composer/ca-bundle": "^1.5.6",
     "dragonmantank/cron-expression": "^3.4",
+    "symfony/config": "^6.4",
+    "symfony/dependency-injection": "^6.4",
+    "symfony/yaml": "^6.4 || ^7.1",
     "symfony/console": "^6.4",
     "symfony/lock": "^6.4",
-    "symfony/dependency-injection": "^6.4",
     "symfony/framework-bundle": "^6.4",
     "symfony/process": "^6.4",
     "symfony/var-dumper": "^6.4",
@@ -21,5 +23,11 @@
     "psr-4": {
       "Tourze\\Symfony\\CronJob\\": "src"
     }
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^2.1"
+  },
+  "scripts": {
+    "phpstan": "phpstan analyse src -l 1"
   }
 }
