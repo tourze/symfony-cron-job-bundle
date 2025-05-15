@@ -10,6 +10,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 #[AsCommand(name: 'cron:start', description: '跑一个进程定时检查定时任务')]
 class CronStartCommand extends Command
@@ -18,7 +19,9 @@ class CronStartCommand extends Command
 
     private int $mbLimit = 1024;
 
-    public function __construct(private readonly ContainerInterface $container)
+    public function __construct(
+        #[Autowire(service: 'service_container')] private readonly ContainerInterface $container,
+    )
     {
         parent::__construct();
     }
