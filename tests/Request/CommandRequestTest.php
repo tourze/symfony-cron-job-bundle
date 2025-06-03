@@ -3,7 +3,7 @@
 namespace Tourze\Symfony\CronJob\Tests\Request;
 
 use PHPUnit\Framework\TestCase;
-use Tourze\Symfony\Async\Message\RunCommandMessage;
+use Tourze\AsyncCommandBundle\Message\RunCommandMessage;
 use Tourze\Symfony\CronJob\Request\CommandRequest;
 
 class CommandRequestTest extends TestCase

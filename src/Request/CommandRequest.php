@@ -2,7 +2,7 @@
 
 namespace Tourze\Symfony\CronJob\Request;
 
-use Tourze\Symfony\Async\Message\RunCommandMessage;
+use Tourze\AsyncCommandBundle\Message\RunCommandMessage;
 
 class CommandRequest extends RunCommandMessage
 {

@@ -11,7 +11,7 @@ use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\LockInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Tourze\Symfony\Async\Message\RunCommandMessage;
+use Tourze\AsyncCommandBundle\Message\RunCommandMessage;
 use Tourze\Symfony\CronJob\Command\CronRunCommand;
 use Tourze\Symfony\CronJob\Provider\CronCommandProvider;
 use Tourze\Symfony\CronJob\Request\CommandRequest;
