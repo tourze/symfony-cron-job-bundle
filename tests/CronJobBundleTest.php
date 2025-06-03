@@ -3,8 +3,8 @@
 namespace Tourze\Symfony\CronJob\Tests;
 
 use PHPUnit\Framework\TestCase;
+use Tourze\AsyncCommandBundle\AsyncCommandBundle;
 use Tourze\BundleDependency\BundleDependencyInterface;
-use Tourze\Symfony\Async\AsyncBundle;
 use Tourze\Symfony\CronJob\CronJobBundle;
 
 class CronJobBundleTest extends TestCase
@@ -19,7 +19,7 @@ class CronJobBundleTest extends TestCase
         $dependencies = CronJobBundle::getBundleDependencies();
 
         $this->assertIsArray($dependencies);
-        $this->assertArrayHasKey(AsyncBundle::class, $dependencies);
-        $this->assertEquals(['all' => true], $dependencies[AsyncBundle::class]);
+        $this->assertArrayHasKey(AsyncCommandBundle::class, $dependencies);
+        $this->assertEquals(['all' => true], $dependencies[AsyncCommandBundle::class]);
     }
 }

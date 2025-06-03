@@ -23,8 +23,7 @@
     "tiben/crontab-manager": "^1.4",
     "tourze/async-command-bundle": "0.0.*",
     "tourze/bundle-dependency": "0.0.*",
-    "tourze/doctrine-helper": "0.0.*",
-    "tourze/symfony-async-bundle": "0.0.*"
+    "tourze/doctrine-helper": "0.0.*"
   },
   "require-dev": {
     "maglnet/composer-require-checker": "^4",
