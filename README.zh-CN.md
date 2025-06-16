@@ -19,6 +19,7 @@
 - 集成 Symfony Messenger 与 Lock 组件
 - **内置防重复执行机制，确保同一任务在同一时间点只会触发一次**
 - **支持自定义锁 TTL 和可选的防重复执行配置**
+- **支持 HTTP 触发和 Terminate 事件触发，适用于 Serverless 环境**
 
 ## 安装说明
 
@@ -82,6 +83,63 @@ Bundle 内置了强大的防重复执行机制：
 2. **锁键生成**：基于命令名、参数和执行时间生成唯一键值
 3. **自定义 TTL**：可为每个任务设置不同的锁定时长（默认 3600 秒）
 4. **分布式支持**：通过配置不同的锁存储（Redis、数据库等）支持分布式部署
+
+### HTTP 触发支持（适用于 Serverless 环境）
+
+在无法部署传统 cron 任务的环境（如函数计算 FC、AWS Lambda 等），可以使用 HTTP 触发功能：
+
+#### 配置启用
+
+通过环境变量进行配置：
+
+```bash
+# 启用 HTTP 触发
+CRON_HTTP_TRIGGER_ENABLED=1
+CRON_HTTP_TRIGGER_SECRET=your-secure-secret-key
+
+# 启用 terminate 事件触发
+CRON_TERMINATE_TRIGGER_ENABLED=1
+CRON_TERMINATE_TRIGGER_PROBABILITY=0.01  # 1% 概率
+```
+
+或在 `.env` 文件中：
+
+```env
+# HTTP 触发配置
+CRON_HTTP_TRIGGER_ENABLED=true
+CRON_HTTP_TRIGGER_SECRET=your-secure-secret-key
+
+# Terminate 触发配置  
+CRON_TERMINATE_TRIGGER_ENABLED=true
+CRON_TERMINATE_TRIGGER_PROBABILITY=0.01
+```
+
+#### HTTP 轮询触发
+
+```bash
+# 使用 Bearer Token
+curl -X POST https://your-app.com/cron/trigger \
+  -H "Authorization: Bearer your-secure-secret-key"
+
+# 或使用自定义 Header
+curl -X POST https://your-app.com/cron/trigger \
+  -H "X-Cron-Secret: your-secure-secret-key"
+```
+
+#### Terminate 事件触发
+
+当启用 `terminate_trigger` 后，系统会在普通 HTTP 请求结束后按概率触发定时任务检查。这种方式：
+
+- 不会阻塞正常请求响应
+- 按概率执行，避免过度消耗资源
+- 适合流量较大的应用作为兜底方案
+
+#### 安全建议
+
+1. **必须设置强密钥**：使用至少 32 位的随机字符串
+2. **限制 IP 访问**：在 Web 服务器或云服务商层面限制访问来源
+3. **监控触发频率**：避免过于频繁的触发导致资源浪费
+4. **使用 HTTPS**：确保密钥传输安全
 
 ### Provider 接口使用
 

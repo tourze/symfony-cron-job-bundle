@@ -6,6 +6,10 @@ services:
 
   Tourze\Symfony\CronJob\Command\:
     resource: '../../Command/'
+  Tourze\Symfony\CronJob\Controller\:
+    resource: '../../Controller/'
+  Tourze\Symfony\CronJob\EventListener\:
+    resource: '../../EventListener/'
   Tourze\Symfony\CronJob\Provider\:
     resource: '../../Provider/'
   Tourze\Symfony\CronJob\Service\:
