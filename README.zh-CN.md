@@ -88,47 +88,16 @@ Bundle 内置了强大的防重复执行机制：
 
 在无法部署传统 cron 任务的环境（如函数计算 FC、AWS Lambda 等），可以使用 HTTP 触发功能：
 
-#### 配置启用
-
-通过环境变量进行配置：
-
-```bash
-# 启用 HTTP 触发
-CRON_HTTP_TRIGGER_ENABLED=1
-CRON_HTTP_TRIGGER_SECRET=your-secure-secret-key
-
-# 启用 terminate 事件触发
-CRON_TERMINATE_TRIGGER_ENABLED=1
-CRON_TERMINATE_TRIGGER_PROBABILITY=0.01  # 1% 概率
-```
-
-或在 `.env` 文件中：
-
-```env
-# HTTP 触发配置
-CRON_HTTP_TRIGGER_ENABLED=true
-CRON_HTTP_TRIGGER_SECRET=your-secure-secret-key
-
-# Terminate 触发配置  
-CRON_TERMINATE_TRIGGER_ENABLED=true
-CRON_TERMINATE_TRIGGER_PROBABILITY=0.01
-```
-
 #### HTTP 轮询触发
 
 ```bash
-# 使用 Bearer Token
-curl -X POST https://your-app.com/cron/trigger \
-  -H "Authorization: Bearer your-secure-secret-key"
-
-# 或使用自定义 Header
-curl -X POST https://your-app.com/cron/trigger \
-  -H "X-Cron-Secret: your-secure-secret-key"
+# 直接 HTTP 请求触发
+curl -X POST https://your-app.com/cron/trigger
 ```
 
 #### Terminate 事件触发
 
-当启用 `terminate_trigger` 后，系统会在普通 HTTP 请求结束后按概率触发定时任务检查。这种方式：
+系统会在普通 HTTP 请求结束后按概率触发定时任务检查。这种方式：
 
 - 不会阻塞正常请求响应
 - 按概率执行，避免过度消耗资源
@@ -136,10 +105,10 @@ curl -X POST https://your-app.com/cron/trigger \
 
 #### 安全建议
 
-1. **必须设置强密钥**：使用至少 32 位的随机字符串
-2. **限制 IP 访问**：在 Web 服务器或云服务商层面限制访问来源
-3. **监控触发频率**：避免过于频繁的触发导致资源浪费
-4. **使用 HTTPS**：确保密钥传输安全
+1. **限制访问**：在 Web 服务器或云服务商层面限制访问来源
+2. **监控触发频率**：避免过于频繁的触发导致资源浪费
+3. **使用 HTTPS**：确保请求传输安全
+4. **防火墙保护**：配置防火墙规则限制外部访问
 
 ### Provider 接口使用
 

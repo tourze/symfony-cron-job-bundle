@@ -8,8 +8,10 @@
     "ext-posix": "*",
     "composer/ca-bundle": "^1.5.6",
     "dragonmantank/cron-expression": "^3.4",
+    "psr/cache": "^2.0 || ^3.0",
     "psr/container": "^1.1|^2.0",
     "psr/log": "^3|^2|^1",
+    "symfony/cache-contracts": "^3",
     "symfony/config": "^6.4",
     "symfony/console": "^6.4",
     "symfony/dependency-injection": "^6.4",
@@ -26,7 +28,9 @@
     "tiben/crontab-manager": "^1.4",
     "tourze/async-command-bundle": "0.0.*",
     "tourze/bundle-dependency": "0.0.*",
-    "tourze/doctrine-helper": "0.0.*"
+    "tourze/doctrine-helper": "0.0.*",
+    "tourze/lock-service-bundle": "0.1.*",
+    "tourze/symfony-routing-auto-loader-bundle": "0.0.*"
   },
   "require-dev": {
     "maglnet/composer-require-checker": "^4",
