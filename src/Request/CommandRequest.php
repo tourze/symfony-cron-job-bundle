@@ -7,6 +7,7 @@ use Tourze\AsyncCommandBundle\Message\RunCommandMessage;
 class CommandRequest extends RunCommandMessage
 {
     private string $cronExpression;
+    private ?int $lockTtl = null;
 
     public function getCronExpression(): string
     {
@@ -16,5 +17,15 @@ class CommandRequest extends RunCommandMessage
     public function setCronExpression(string $cronExpression): void
     {
         $this->cronExpression = $cronExpression;
+    }
+
+    public function getLockTtl(): ?int
+    {
+        return $this->lockTtl;
+    }
+
+    public function setLockTtl(?int $lockTtl): void
+    {
+        $this->lockTtl = $lockTtl;
     }
 }

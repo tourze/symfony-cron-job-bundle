@@ -17,6 +17,8 @@
 - 灵活自定义 Cron 表达式
 - 内置命令行工具，便于任务调度与运行
 - 集成 Symfony Messenger 与 Lock 组件
+- **内置防重复执行机制，确保同一任务在同一时间点只会触发一次**
+- **支持自定义锁 TTL 和可选的防重复执行配置**
 
 ## 安装说明
 
@@ -43,6 +45,13 @@ use Tourze\Symfony\CronJob\Attribute\AsCronTask;
 
 #[AsCronTask('0 * * * *')] // 每小时执行一次
 class MyHourlyCommand extends Command { ... }
+
+// 高级用法：自定义锁配置
+#[AsCronTask(
+    expression: '*/5 * * * *',     // 每 5 分钟执行
+    lockTtl: 300                   // 锁定 5 分钟（300秒），默认 3600 秒
+)]
+class MyCustomCommand extends Command { ... }
 ```
 
 或实现 `CronCommandProvider` 接口，动态提供任务。
@@ -65,9 +74,41 @@ php bin/console cron:start
 
 ## 详细文档
 
+### 防重复执行机制
+
+Bundle 内置了强大的防重复执行机制：
+
+1. **锁机制**：使用 Symfony Lock 组件，所有任务在执行前都会获取锁
+2. **锁键生成**：基于命令名、参数和执行时间生成唯一键值
+3. **自定义 TTL**：可为每个任务设置不同的锁定时长（默认 3600 秒）
+4. **分布式支持**：通过配置不同的锁存储（Redis、数据库等）支持分布式部署
+
+### Provider 接口使用
+
+```php
+use Tourze\Symfony\CronJob\Provider\CronCommandProvider;
+use Tourze\Symfony\CronJob\Request\CommandRequest;
+
+class MyCustomProvider implements CronCommandProvider
+{
+    public function getCommands(): iterable
+    {
+        $request = new CommandRequest();
+        $request->setCommand('app:process-queue');
+        $request->setCronExpression('*/10 * * * *');
+        $request->setLockTtl(600);  // 10 分钟锁定
+        
+        yield $request;
+    }
+}
+```
+
+### 更多特性
+
 - 支持 Attribute 与 Provider 两种注册方式
 - 灵活 Cron 表达式
 - Messenger 异步执行
+- 分布式部署支持（通过配置 Redis/数据库锁存储）
 - 更多高级配置请参考源码与注释
 
 ## 贡献指南

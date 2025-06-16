@@ -14,29 +14,42 @@ class AsCronTaskTest extends TestCase
         $this->assertInstanceOf(AutoconfigureTag::class, $attribute);
     }
 
-    public function test_default_constructor_uses_every_minute_expression()
+    public function test_default_constructor_parameters()
     {
         $reflection = new \ReflectionClass(AsCronTask::class);
         $constructor = $reflection->getConstructor();
         $parameters = $constructor->getParameters();
 
-        $this->assertCount(1, $parameters);
+        $this->assertCount(2, $parameters);
+        
+        // 检查 expression 参数
         $this->assertEquals('expression', $parameters[0]->getName());
         $this->assertEquals('* * * * *', $parameters[0]->getDefaultValue());
+        
+        // 检查 lockTtl 参数
+        $this->assertEquals('lockTtl', $parameters[1]->getName());
+        $this->assertNull($parameters[1]->getDefaultValue());
     }
 
-    public function test_constructor_sets_expression()
+    public function test_constructor_sets_all_parameters()
     {
-        // 无需使用反射访问私有属性，直接测试标签名称常量
         $cronExpression = '0 0 * * *';
-        $attribute = new AsCronTask($cronExpression);
+        $lockTtl = 1800;
+        
+        $attribute = new AsCronTask($cronExpression, $lockTtl);
 
         // 验证标签名称常量
         $this->assertEquals('tourze.job-cron.schedule', AsCronTask::TAG_NAME);
 
-        // 间接测试构造函数行为
-        $reflectionObj = new \ReflectionObject($attribute);
-        $this->assertTrue($reflectionObj->isInstance($attribute));
+        // 通过反射获取父类的 tags 属性来验证参数
+        $reflection = new \ReflectionClass($attribute);
+        $parentReflection = $reflection->getParentClass();
+        $tagsProperty = $parentReflection->getProperty('tags');
+        $tagsProperty->setAccessible(true);
+        $tags = $tagsProperty->getValue($attribute);
+        
+        $this->assertEquals($cronExpression, $tags[0][AsCronTask::TAG_NAME]['expression']);
+        $this->assertEquals($lockTtl, $tags[0][AsCronTask::TAG_NAME]['lockTtl']);
     }
 
     public function test_tag_name_constant_value()

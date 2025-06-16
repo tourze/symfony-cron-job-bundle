@@ -41,4 +41,22 @@ class CommandRequestTest extends TestCase
         $this->assertEquals($command, $request->getCommand());
         $this->assertEquals($options, $request->getOptions());
     }
+
+    public function test_get_set_lock_ttl()
+    {
+        $request = new CommandRequest();
+
+        // 默认值为 null
+        $this->assertNull($request->getLockTtl());
+
+        // 设置锁 TTL
+        $ttl = 600;
+        $request->setLockTtl($ttl);
+        $this->assertEquals($ttl, $request->getLockTtl());
+
+        // 设置为 null
+        $request->setLockTtl(null);
+        $this->assertNull($request->getLockTtl());
+    }
+
 }

@@ -50,11 +50,14 @@ class CronRunCommand extends Command
                 $item = $item->newInstance();
                 /* @var AsCronTask $item */
 
-                if (!$this->checkCronExpression($item->tags[0][AsCronTask::TAG_NAME]['expression'], $now)) {
+                $tagData = $item->tags[0][AsCronTask::TAG_NAME];
+                if (!$this->checkCronExpression($tagData['expression'], $now)) {
                     continue;
                 }
 
-                $this->createMessage($command->getName(), [], $now);
+                $lockTtl = $tagData['lockTtl'] ?? null;
+
+                $this->createMessage($command->getName(), [], $now, $lockTtl);
             }
         }
 
@@ -66,7 +69,12 @@ class CronRunCommand extends Command
                     continue;
                 }
 
-                $this->createMessage($command->getCommand(), $command->getOptions(), $now);
+                $this->createMessage(
+                    $command->getCommand(), 
+                    $command->getOptions(), 
+                    $now,
+                    $command->getLockTtl()
+                );
             }
         }
 
@@ -89,20 +97,34 @@ class CronRunCommand extends Command
         return true;
     }
 
-    private function createMessage(string $command, array $options, DateTimeImmutable $time): void
-    {
+    private function createMessage(
+        string $command, 
+        array $options, 
+        DateTimeImmutable $time,
+        ?int $lockTtl = null
+    ): void {
         $key = str_replace(':', '-', $command) . md5(serialize($options)) . '-cron-' . $time->format('YmdHi00');
 
-        // 这个锁，拿了就不释放，一小时后自动释放
-        $lock = $this->lockFactory->createLock($key, ttl: 60 * 60, autoRelease: false);
+        // 使用自定义的 TTL 或默认的 1 小时
+        $ttl = $lockTtl ?? 3600;
+
+        // 这个锁，拿了就不释放，到期后自动释放
+        $lock = $this->lockFactory->createLock($key, ttl: $ttl, autoRelease: false);
         if (!$lock->acquire()) {
             // 拿不到锁，直接返回，说明有别人拿了
             $this->logger->warning('无法获取锁，跳过', [
                 'key' => $key,
+                'ttl' => $ttl,
+                'command' => $command,
             ]);
             return;
         }
 
+        $this->dispatchMessage($command, $options);
+    }
+
+    private function dispatchMessage(string $command, array $options): void
+    {
         $this->logger->info('生成定时任务异步任务', [
             'command' => $command,
         ]);
