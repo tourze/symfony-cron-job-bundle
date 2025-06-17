@@ -18,12 +18,10 @@ class CronTerminateListener
     public function __construct(
         private readonly CronTriggerService $cronTriggerService,
         private readonly LoggerInterface $logger,
-    ) {
+    )
+    {
     }
 
-    /**
-     * 处理 kernel.terminate 事件
-     */
     public function onKernelTerminate(TerminateEvent $event): void
     {
         // 只在主请求时触发，忽略子请求
@@ -31,11 +29,17 @@ class CronTerminateListener
             return;
         }
 
-        // 直接使用统一的触发服务
-        $triggered = $this->cronTriggerService->triggerScheduledTasks();
-        
-        if ($triggered) {
-            $this->logger->info('Cron tasks triggered via terminate event');
+        try {
+            // 直接使用统一的触发服务
+            $triggered = $this->cronTriggerService->triggerScheduledTasks();
+
+            if ($triggered) {
+                $this->logger->info('Cron tasks triggered via terminate event');
+            }
+        } catch (\Throwable $exception) {
+            $this->logger->error('基于事件机制触发定时任务失败', [
+                'exception' => $exception,
+            ]);
         }
     }
 }
