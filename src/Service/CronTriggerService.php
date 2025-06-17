@@ -7,11 +7,13 @@ use DateTimeImmutable;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Tourze\AsyncCommandBundle\Message\RunCommandMessage;
 use Tourze\DoctrineHelper\ReflectionHelper;
 use Tourze\LockServiceBundle\Service\LockService;
 use Tourze\Symfony\CronJob\Attribute\AsCronTask;
+use Tourze\Symfony\CronJob\Provider\CronCommandProvider;
 
 /**
  * 统一的定时任务触发服务
@@ -22,8 +24,8 @@ class CronTriggerService
     private const TRIGGER_LOCK_KEY = 'cron-trigger';
 
     public function __construct(
-        private readonly iterable $commands,
-        private readonly iterable $providers,
+        #[TaggedIterator(AsCronTask::TAG_NAME)] private readonly iterable $commands,
+        #[TaggedIterator(CronCommandProvider::TAG_NAME)] private readonly iterable $providers,
         private readonly MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger,
         private readonly LockService $lockService,
