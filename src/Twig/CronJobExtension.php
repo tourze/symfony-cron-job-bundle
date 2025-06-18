@@ -13,7 +13,6 @@ class CronJobExtension extends AbstractExtension
 {
     public function __construct(
         private readonly UrlGeneratorInterface $urlGenerator,
-        private readonly int $interval = 60000, // 默认 60 秒触发一次
     ) {
     }
 
@@ -37,14 +36,16 @@ class CronJobExtension extends AbstractExtension
      */
     public function renderCronAutoTrigger(?int $interval = null, array $options = []): string
     {
-        $interval = $interval ?? $this->interval;
+        // 从环境变量读取，如果不存在则使用默认值 60000
+        $defaultInterval = isset($_ENV['CRON_AUTO_TRIGGER_INTERVAL']) ? (int) $_ENV['CRON_AUTO_TRIGGER_INTERVAL'] : 60000;
+        $interval = $interval ?? $defaultInterval;
         $triggerUrl = $this->urlGenerator->generate('cron_trigger', [], UrlGeneratorInterface::ABSOLUTE_URL);
         
         $debug = $options['debug'] ?? false;
         $maxRetries = $options['maxRetries'] ?? 3;
         $retryDelay = $options['retryDelay'] ?? 5000;
 
-        $debugJs = $debug ? 'true' : 'false';
+        $debugJs = (bool) $debug ? 'true' : 'false';
 
         return <<<HTML
 <script>

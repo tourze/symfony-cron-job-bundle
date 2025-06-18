@@ -12,9 +12,10 @@ use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-#[AsCommand(name: 'cron:start', description: '跑一个进程定时检查定时任务')]
+#[AsCommand(name: self::NAME, description: '跑一个进程定时检查定时任务')]
 class CronStartCommand extends Command
 {
+    public const NAME = 'cron:start';
     final public const PID_FILE = '.cron-pid';
 
     private int $mbLimit = 1024;
@@ -34,7 +35,7 @@ class CronStartCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        if ($input->getOption('blocking')) {
+        if ((bool) $input->getOption('blocking')) {
             $output->writeln(sprintf('<info>%s</info>', 'Starting cron scheduler in blocking mode.'));
             $this->scheduler($output->isVerbose() ? $output : new NullOutput(), null);
 

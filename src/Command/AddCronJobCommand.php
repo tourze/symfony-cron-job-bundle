@@ -13,9 +13,10 @@ use TiBeN\CrontabManager\CrontabAdapter;
 use TiBeN\CrontabManager\CrontabJob;
 use TiBeN\CrontabManager\CrontabRepository;
 
-#[AsCommand(name: 'cron-job:add-cron-tab', description: '注册到Crontab')]
+#[AsCommand(name: self::NAME, description: '注册到Crontab')]
 class AddCronJobCommand extends Command
 {
+    public const NAME = 'cron-job:add-cron-tab';
     public function __construct(
         private readonly KernelInterface $kernel,
     )

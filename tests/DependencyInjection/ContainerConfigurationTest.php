@@ -12,7 +12,7 @@ use Tourze\Symfony\CronJob\Twig\CronJobExtension;
 
 class ContainerConfigurationTest extends TestCase
 {
-    public function testServiceConfigurationWithDefaultEnvValue(): void
+    public function testServiceConfigurationExists(): void
     {
         $container = new ContainerBuilder(new EnvPlaceholderParameterBag());
         
@@ -22,17 +22,6 @@ class ContainerConfigurationTest extends TestCase
         
         // 验证服务定义存在
         $this->assertTrue($container->hasDefinition(CronJobExtension::class));
-        
-        // 获取服务定义
-        $definition = $container->getDefinition(CronJobExtension::class);
-        
-        // 验证参数配置
-        $arguments = $definition->getArguments();
-        $this->assertArrayHasKey('$interval', $arguments);
-        
-        // 验证环境变量配置格式
-        $intervalArg = $arguments['$interval'];
-        $this->assertEquals('%env(int:default:60000:CRON_AUTO_TRIGGER_INTERVAL)%', $intervalArg);
     }
     
     public function testServiceInstantiationWithDefaultInterval(): void
@@ -41,7 +30,8 @@ class ContainerConfigurationTest extends TestCase
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         
         // 不设置环境变量，使用默认值
-        $extension = new CronJobExtension($urlGenerator, 60000);
+        unset($_ENV['CRON_AUTO_TRIGGER_INTERVAL']);
+        $extension = new CronJobExtension($urlGenerator);
         
         // 验证默认值是否生效
         $urlGenerator->expects($this->once())
@@ -58,7 +48,8 @@ class ContainerConfigurationTest extends TestCase
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         
         // 使用自定义值
-        $extension = new CronJobExtension($urlGenerator, 180000);
+        $_ENV['CRON_AUTO_TRIGGER_INTERVAL'] = '180000';
+        $extension = new CronJobExtension($urlGenerator);
         
         // 验证自定义值是否生效
         $urlGenerator->expects($this->once())
@@ -67,6 +58,9 @@ class ContainerConfigurationTest extends TestCase
             
         $result = $extension->renderCronAutoTrigger();
         $this->assertStringContainsString('const interval = 180000;', $result);
+        
+        // 清理环境变量
+        unset($_ENV['CRON_AUTO_TRIGGER_INTERVAL']);
     }
     
     public function testTwigExtensionTag(): void
@@ -92,7 +86,7 @@ class ContainerConfigurationTest extends TestCase
         
         // 创建服务实例
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $extension = new CronJobExtension($urlGenerator, (int) $_ENV['CRON_AUTO_TRIGGER_INTERVAL']);
+        $extension = new CronJobExtension($urlGenerator);
         
         // 验证环境变量值被使用
         $urlGenerator->expects($this->once())

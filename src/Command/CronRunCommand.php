@@ -11,10 +11,10 @@ use Tourze\Symfony\CronJob\Service\CronTriggerService;
 /**
  * 基于当前的时间，运行一次相关的定时任务
  */
-#[AsCommand(name: CronRunCommand::NAME, description: '运行当前分钟的定时任务')]
+#[AsCommand(name: self::NAME, description: '运行当前分钟的定时任务')]
 class CronRunCommand extends Command
 {
-    const NAME = 'cron:run';
+    public const NAME = 'cron:run';
 
     public function __construct(
         private readonly CronTriggerService $cronTriggerService,

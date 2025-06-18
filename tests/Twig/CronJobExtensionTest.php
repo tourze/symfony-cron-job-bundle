@@ -110,11 +110,11 @@ class CronJobExtensionTest extends TestCase
         $this->assertStringContainsString('setTimeout(triggerCron, 1000);', $result);
     }
 
-    public function testCustomIntervalFromConstructor(): void
+    public function testCustomIntervalFromEnv(): void
     {
-        // 测试通过构造函数传递自定义 interval 值
-        $customInterval = 120000; // 120 秒
-        $customExtension = new CronJobExtension($this->urlGenerator, $customInterval);
+        // 测试通过环境变量设置自定义 interval 值
+        $_ENV['CRON_AUTO_TRIGGER_INTERVAL'] = '120000'; // 120 秒
+        $customExtension = new CronJobExtension($this->urlGenerator);
         
         $this->urlGenerator->expects($this->once())
             ->method('generate')
@@ -122,16 +122,19 @@ class CronJobExtensionTest extends TestCase
 
         $result = $customExtension->renderCronAutoTrigger();
         
-        // 验证使用了自定义的 interval 值
+        // 验证使用了环境变量的 interval 值
         $this->assertStringContainsString('const interval = 120000;', $result);
+        
+        // 清理环境变量
+        unset($_ENV['CRON_AUTO_TRIGGER_INTERVAL']);
     }
 
-    public function testCustomIntervalOverridesConstructorValue(): void
+    public function testCustomIntervalOverridesEnvValue(): void
     {
-        // 测试 renderCronAutoTrigger 方法的参数会覆盖构造函数的值
-        $constructorInterval = 120000;
+        // 测试 renderCronAutoTrigger 方法的参数会覆盖环境变量的值
+        $_ENV['CRON_AUTO_TRIGGER_INTERVAL'] = '120000';
         $methodInterval = 30000;
-        $customExtension = new CronJobExtension($this->urlGenerator, $constructorInterval);
+        $customExtension = new CronJobExtension($this->urlGenerator);
         
         $this->urlGenerator->expects($this->once())
             ->method('generate')
@@ -139,8 +142,11 @@ class CronJobExtensionTest extends TestCase
 
         $result = $customExtension->renderCronAutoTrigger($methodInterval);
         
-        // 验证使用了方法参数的 interval 值，而不是构造函数的值
+        // 验证使用了方法参数的 interval 值，而不是环境变量的值
         $this->assertStringContainsString('const interval = 30000;', $result);
+        
+        // 清理环境变量
+        unset($_ENV['CRON_AUTO_TRIGGER_INTERVAL']);
     }
 
     protected function setUp(): void

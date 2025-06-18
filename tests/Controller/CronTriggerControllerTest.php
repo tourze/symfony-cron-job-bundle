@@ -41,7 +41,7 @@ class CronTriggerControllerTest extends TestCase
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        
+
         $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
         $this->assertEquals('Cron tasks triggered successfully', $data['message']);
@@ -66,10 +66,9 @@ class CronTriggerControllerTest extends TestCase
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        
+
         $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['success']);
         $this->assertEquals('No tasks triggered or already running', $data['message']);
     }
-
 }
