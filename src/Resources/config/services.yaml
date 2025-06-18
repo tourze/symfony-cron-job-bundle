@@ -17,10 +17,6 @@ services:
   
   Tourze\Symfony\CronJob\Twig\CronJobExtension:
     arguments:
-      $interval: '%env(int:CRON_AUTO_TRIGGER_INTERVAL)%'
+      $interval: '%env(int:default:60000:CRON_AUTO_TRIGGER_INTERVAL)%'
     tags:
       - { name: twig.extension }
-
-  # 提供默认配置值
-  parameters:
-    env(CRON_AUTO_TRIGGER_INTERVAL): 60000

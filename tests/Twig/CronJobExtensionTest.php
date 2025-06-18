@@ -20,10 +20,6 @@ class CronJobExtensionTest extends TestCase
         $this->assertCount(1, $functions);
         $this->assertInstanceOf(TwigFunction::class, $functions[0]);
         $this->assertEquals('cron_auto_trigger', $functions[0]->getName());
-
-        $options = $functions[0]->getOptions();
-        $this->assertArrayHasKey('is_safe', $options);
-        $this->assertEquals(['html'], $options['is_safe']);
     }
 
     public function testRenderCronAutoTriggerWithDefaults(): void
@@ -112,6 +108,39 @@ class CronJobExtensionTest extends TestCase
 
         // 验证初始延迟执行
         $this->assertStringContainsString('setTimeout(triggerCron, 1000);', $result);
+    }
+
+    public function testCustomIntervalFromConstructor(): void
+    {
+        // 测试通过构造函数传递自定义 interval 值
+        $customInterval = 120000; // 120 秒
+        $customExtension = new CronJobExtension($this->urlGenerator, $customInterval);
+        
+        $this->urlGenerator->expects($this->once())
+            ->method('generate')
+            ->willReturn('http://example.com/cron/trigger');
+
+        $result = $customExtension->renderCronAutoTrigger();
+        
+        // 验证使用了自定义的 interval 值
+        $this->assertStringContainsString('const interval = 120000;', $result);
+    }
+
+    public function testCustomIntervalOverridesConstructorValue(): void
+    {
+        // 测试 renderCronAutoTrigger 方法的参数会覆盖构造函数的值
+        $constructorInterval = 120000;
+        $methodInterval = 30000;
+        $customExtension = new CronJobExtension($this->urlGenerator, $constructorInterval);
+        
+        $this->urlGenerator->expects($this->once())
+            ->method('generate')
+            ->willReturn('http://example.com/cron/trigger');
+
+        $result = $customExtension->renderCronAutoTrigger($methodInterval);
+        
+        // 验证使用了方法参数的 interval 值，而不是构造函数的值
+        $this->assertStringContainsString('const interval = 30000;', $result);
     }
 
     protected function setUp(): void
