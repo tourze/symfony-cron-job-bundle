@@ -30,7 +30,8 @@
     "tourze/bundle-dependency": "0.0.*",
     "tourze/doctrine-helper": "0.0.*",
     "tourze/lock-service-bundle": "0.1.*",
-    "tourze/symfony-routing-auto-loader-bundle": "0.0.*"
+    "tourze/symfony-routing-auto-loader-bundle": "0.0.*",
+    "twig/twig": "^3.13|^4.0"
   },
   "require-dev": {
     "maglnet/composer-require-checker": "^4",
