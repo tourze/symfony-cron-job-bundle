@@ -14,3 +14,13 @@ services:
     resource: '../../Provider/'
   Tourze\Symfony\CronJob\Service\:
     resource: '../../Service/'
+  
+  Tourze\Symfony\CronJob\Twig\CronJobExtension:
+    arguments:
+      $interval: '%env(int:CRON_AUTO_TRIGGER_INTERVAL)%'
+    tags:
+      - { name: twig.extension }
+
+  # 提供默认配置值
+  parameters:
+    env(CRON_AUTO_TRIGGER_INTERVAL): 60000

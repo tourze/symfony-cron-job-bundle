@@ -130,12 +130,60 @@ class MyCustomProvider implements CronCommandProvider
 }
 ```
 
+### Twig 模板集成
+
+Bundle 提供了 `cron_auto_trigger` Twig 函数，可以在模板中自动注入 JavaScript 代码来定时触发定时任务：
+
+```twig
+{# 基础用法：每 60 秒触发一次 #}
+{{ cron_auto_trigger() }}
+
+{# 自定义触发间隔：每 30 秒触发一次 #}
+{{ cron_auto_trigger(30000) }}
+
+{# 开启调试模式 #}
+{{ cron_auto_trigger(null, { debug: true }) }}
+
+{# 完整配置示例 #}
+{{ cron_auto_trigger(120000, {
+    debug: true,           {# 开启控制台日志 #}
+    maxRetries: 5,        {# 最大重试次数 #}
+    retryDelay: 10000     {# 重试延迟（毫秒） #}
+}) }}
+```
+
+#### 配置说明
+
+- **interval**：触发间隔时间（毫秒），默认 60000（60秒）
+- **debug**：是否开启调试日志，默认 false
+- **maxRetries**：请求失败时的最大重试次数，默认 3
+- **retryDelay**：重试延迟时间（毫秒），默认 5000
+
+#### 环境变量配置
+
+可以通过环境变量设置默认触发间隔：
+
+```env
+# .env
+CRON_AUTO_TRIGGER_INTERVAL=30000  # 30 秒
+```
+
+#### 使用场景
+
+此功能特别适用于：
+
+- **共享主机环境**：无法配置系统 crontab
+- **Serverless 应用**：需要定期触发任务但无后台进程
+- **开发测试**：快速测试定时任务功能
+- **用户活跃时触发**：只在有用户访问时执行任务
+
 ### 更多特性
 
 - 支持 Attribute 与 Provider 两种注册方式
 - 灵活 Cron 表达式
 - Messenger 异步执行
 - 分布式部署支持（通过配置 Redis/数据库锁存储）
+- Twig 模板集成，支持前端自动触发
 - 更多高级配置请参考源码与注释
 
 ## 贡献指南
