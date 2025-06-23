@@ -39,7 +39,7 @@ class CronJobExtension extends AbstractExtension
         // 从环境变量读取，如果不存在则使用默认值 60000
         $defaultInterval = isset($_ENV['CRON_AUTO_TRIGGER_INTERVAL']) ? (int) $_ENV['CRON_AUTO_TRIGGER_INTERVAL'] : 60000;
         $interval = $interval ?? $defaultInterval;
-        $triggerUrl = $this->urlGenerator->generate('cron_trigger', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $triggerUrl = $this->urlGenerator->generate('cron_job_http_trigger', [], UrlGeneratorInterface::ABSOLUTE_URL);
         
         $debug = $options['debug'] ?? false;
         $maxRetries = $options['maxRetries'] ?? 3;

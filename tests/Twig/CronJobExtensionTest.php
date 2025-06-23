@@ -26,7 +26,7 @@ class CronJobExtensionTest extends TestCase
     {
         $this->urlGenerator->expects($this->once())
             ->method('generate')
-            ->with('cron_trigger', [], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->with('cron_job_http_trigger', [], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('http://example.com/cron/trigger');
 
         $result = $this->extension->renderCronAutoTrigger();
