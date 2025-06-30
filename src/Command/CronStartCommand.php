@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Tourze\Symfony\CronJob\Exception\CronJobException;
 
 #[AsCommand(name: self::NAME, description: '跑一个进程定时检查定时任务')]
 class CronStartCommand extends Command
@@ -43,16 +44,16 @@ class CronStartCommand extends Command
         }
 
         if (!extension_loaded('pcntl')) {
-            throw new \RuntimeException('This command needs the pcntl extension to run.');
+            throw new CronJobException('This command needs the pcntl extension to run.');
         }
 
         $pidFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . self::PID_FILE;
 
         if (-1 === $pid = pcntl_fork()) {
-            throw new \RuntimeException('Unable to start the cron process.');
+            throw new CronJobException('Unable to start the cron process.');
         } elseif (0 !== $pid) {
             if (false === file_put_contents($pidFile, $pid)) {
-                throw new \RuntimeException('Unable to create process file.');
+                throw new CronJobException('Unable to create process file.');
             }
 
             $output->writeln(sprintf('<info>%s</info>', 'Cron scheduler started in non-blocking mode...'));
@@ -61,7 +62,7 @@ class CronStartCommand extends Command
         }
 
         if (-1 === posix_setsid()) {
-            throw new \RuntimeException('Unable to set the child process as session leader.');
+            throw new CronJobException('Unable to set the child process as session leader.');
         }
 
         $this->scheduler(new NullOutput(), $pidFile);

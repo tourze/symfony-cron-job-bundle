@@ -4,6 +4,7 @@ namespace Tourze\Symfony\CronJob\Tests\Command;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -38,11 +39,11 @@ class AddCronJobCommandTest extends TestCase
     public function test_execute_returns_success()
     {
         // 创建一个模拟的 AddCronJobCommand 以避免实际的 crontab 操作
-        $command = new class($this->kernel) extends AddCronJobCommand {
+        $command = new #[AsCommand(name: self::NAME, description: 'Mock command')] class($this->kernel) extends AddCronJobCommand {
+            public const NAME = 'cron-job:add-cron-tab';
             public function __construct(KernelInterface $kernel)
             {
                 parent::__construct($kernel);
-                $this->setName('cron-job:add-cron-tab');
             }
             
             protected function execute(InputInterface $input, OutputInterface $output): int
@@ -66,13 +67,13 @@ class AddCronJobCommandTest extends TestCase
     public function test_kernel_project_dir_is_used()
     {
         // 创建一个部分模拟的 AddCronJobCommand
-        $command = new class($this->kernel) extends AddCronJobCommand {
+        $command = new #[AsCommand(name: self::NAME, description: 'Mock command')] class($this->kernel) extends AddCronJobCommand {
+            public const NAME = 'cron-job:add-cron-tab';
             public bool $projectDirCalled = false;
             
             public function __construct(KernelInterface $kernel)
             {
                 parent::__construct($kernel);
-                $this->setName('cron-job:add-cron-tab');
             }
             
             protected function execute(InputInterface $input, OutputInterface $output): int
@@ -119,6 +120,12 @@ class AddCronJobCommandTest extends TestCase
 
         $this->assertCount(1, $parameters);
         $this->assertEquals('kernel', $parameters[0]->getName());
-        $this->assertEquals(KernelInterface::class, $parameters[0]->getType()->getName());
+        
+        $parameterType = $parameters[0]->getType();
+        if ($parameterType instanceof \ReflectionNamedType) {
+            $this->assertEquals(KernelInterface::class, $parameterType->getName());
+        } else {
+            $this->fail('Expected ReflectionNamedType for kernel parameter');
+        }
     }
 }

@@ -19,7 +19,13 @@ class CronCommandProviderTest extends TestCase
 
         $method = $reflectionClass->getMethod('getCommands');
         $this->assertTrue($method->isPublic());
-        $this->assertEquals('iterable', $method->getReturnType()->getName());
+        
+        $returnType = $method->getReturnType();
+        if ($returnType instanceof \ReflectionNamedType) {
+            $this->assertEquals('iterable', $returnType->getName());
+        } else {
+            $this->fail('Expected ReflectionNamedType for return type');
+        }
     }
 
     public function test_is_autoconfigured_with_tag()
@@ -34,7 +40,7 @@ class CronCommandProviderTest extends TestCase
             if ($attribute->getName() === 'Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag') {
                 $arguments = $attribute->getArguments();
                 $this->assertCount(1, $arguments);
-                $this->assertEquals(CronCommandProvider::TAG_NAME, $arguments[0]);
+                $this->assertEquals(CronCommandProvider::TAG_NAME, $arguments['name']);
                 $found = true;
                 break;
             }

@@ -25,12 +25,6 @@ class CronTerminateListenerTest extends TestCase
         $this->httpKernel = $this->createMock(HttpKernelInterface::class);
     }
 
-    public function test_sub_request_ignored()
-    {
-        // 跳过此测试，因为我们无法模拟 final 类 TerminateEvent
-        // 在实际环境中，子请求会被 isMainRequest() 检查过滤
-        $this->markTestSkipped('Cannot test sub-request filtering due to final TerminateEvent class');
-    }
 
     public function test_main_request_triggers_service()
     {

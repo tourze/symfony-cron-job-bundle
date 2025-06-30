@@ -24,8 +24,8 @@ class CronTriggerService
     private const TRIGGER_LOCK_KEY = 'cron-trigger';
 
     public function __construct(
-        #[TaggedIterator(AsCronTask::TAG_NAME)] private readonly iterable $commands,
-        #[TaggedIterator(CronCommandProvider::TAG_NAME)] private readonly iterable $providers,
+        #[TaggedIterator(tag: AsCronTask::TAG_NAME)] private readonly iterable $commands,
+        #[TaggedIterator(tag: CronCommandProvider::TAG_NAME)] private readonly iterable $providers,
         private readonly MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger,
         private readonly LockService $lockService,

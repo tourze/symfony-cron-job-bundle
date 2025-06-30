@@ -24,7 +24,7 @@ class CronTriggerController
     /**
      * HTTP 轮询触发定时任务
      */
-    #[Route('/cron/trigger', name: 'cron_job_http_trigger', methods: ['POST'])]
+    #[Route(path: '/cron/trigger', name: 'cron_job_http_trigger', methods: ['POST'])]
     public function trigger(Request $request): JsonResponse
     {
         // 使用统一的触发服务

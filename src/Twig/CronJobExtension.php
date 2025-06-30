@@ -19,7 +19,7 @@ class CronJobExtension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('cron_auto_trigger', [$this, 'renderCronAutoTrigger'], [
+            new TwigFunction('cron_auto_trigger', $this->renderCronAutoTrigger(...), [
                 'is_safe' => ['html'],
             ]),
         ];

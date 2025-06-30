@@ -18,7 +18,6 @@ class CronJobBundleTest extends TestCase
     {
         $dependencies = CronJobBundle::getBundleDependencies();
 
-        $this->assertIsArray($dependencies);
         $this->assertArrayHasKey(AsyncCommandBundle::class, $dependencies);
         $this->assertEquals(['all' => true], $dependencies[AsyncCommandBundle::class]);
     }

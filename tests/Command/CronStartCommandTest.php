@@ -6,11 +6,13 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\CommandTester;
 use Tourze\Symfony\CronJob\Command\CronStartCommand;
+use Tourze\Symfony\CronJob\Exception\CronJobException;
 
 class CronStartCommandTest extends TestCase
 {
@@ -35,10 +37,11 @@ class CronStartCommandTest extends TestCase
         $this->command = new CronStartCommand($this->container);
 
         // 创建一个真实的命令作为cron:run命令
-        $runCommand = new class extends Command {
+        $runCommand = new #[AsCommand(name: self::NAME, description: 'Mock cron run command')] class extends Command {
+            public const NAME = 'cron:run';
             public function __construct()
             {
-                parent::__construct('cron:run');
+                parent::__construct();
             }
 
             protected function execute(InputInterface $input, OutputInterface $output): int
@@ -105,7 +108,7 @@ class CronStartCommandTest extends TestCase
             $this->assertStringContainsString('This command needs the pcntl extension to run.', $methodSource);
         } else {
             // 如果 pcntl 不可用，测试实际的异常抛出
-            $this->expectException(\RuntimeException::class);
+            $this->expectException(CronJobException::class);
             $this->expectExceptionMessage('This command needs the pcntl extension to run.');
             
             $commandTester = new CommandTester($this->command);
