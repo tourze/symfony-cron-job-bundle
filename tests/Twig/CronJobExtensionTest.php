@@ -2,16 +2,20 @@
 
 namespace Tourze\Symfony\CronJob\Tests\Twig;
 
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 use Tourze\Symfony\CronJob\Twig\CronJobExtension;
 use Twig\TwigFunction;
 
-class CronJobExtensionTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(CronJobExtension::class)]
+#[RunTestsInSeparateProcesses]
+final class CronJobExtensionTest extends AbstractIntegrationTestCase
 {
     private CronJobExtension $extension;
-    private UrlGeneratorInterface&MockObject $urlGenerator;
 
     public function testGetFunctions(): void
     {
@@ -24,15 +28,10 @@ class CronJobExtensionTest extends TestCase
 
     public function testRenderCronAutoTriggerWithDefaults(): void
     {
-        $this->urlGenerator->expects($this->once())
-            ->method('generate')
-            ->with('cron_job_http_trigger', [], UrlGeneratorInterface::ABSOLUTE_URL)
-            ->willReturn('http://example.com/cron/trigger');
-
         $result = $this->extension->renderCronAutoTrigger();
 
         $this->assertStringContainsString('<script>', $result);
-        $this->assertStringContainsString('http://example.com/cron/trigger', $result);
+        $this->assertStringContainsString('http://localhost/cron/trigger', $result);
         $this->assertStringContainsString('const interval = 60000;', $result);
         $this->assertStringContainsString('const debug = false;', $result);
         $this->assertStringContainsString('const maxRetries = 3;', $result);
@@ -42,10 +41,6 @@ class CronJobExtensionTest extends TestCase
 
     public function testRenderCronAutoTriggerWithCustomInterval(): void
     {
-        $this->urlGenerator->expects($this->once())
-            ->method('generate')
-            ->willReturn('http://example.com/cron/trigger');
-
         $result = $this->extension->renderCronAutoTrigger(30000);
 
         $this->assertStringContainsString('const interval = 30000;', $result);
@@ -53,10 +48,6 @@ class CronJobExtensionTest extends TestCase
 
     public function testRenderCronAutoTriggerWithDebugEnabled(): void
     {
-        $this->urlGenerator->expects($this->once())
-            ->method('generate')
-            ->willReturn('http://example.com/cron/trigger');
-
         $result = $this->extension->renderCronAutoTrigger(null, ['debug' => true]);
 
         $this->assertStringContainsString('const debug = true;', $result);
@@ -66,10 +57,6 @@ class CronJobExtensionTest extends TestCase
 
     public function testRenderCronAutoTriggerWithCustomOptions(): void
     {
-        $this->urlGenerator->expects($this->once())
-            ->method('generate')
-            ->willReturn('http://example.com/cron/trigger');
-
         $result = $this->extension->renderCronAutoTrigger(null, [
             'maxRetries' => 5,
             'retryDelay' => 10000,
@@ -81,10 +68,6 @@ class CronJobExtensionTest extends TestCase
 
     public function testJavaScriptStructure(): void
     {
-        $this->urlGenerator->expects($this->once())
-            ->method('generate')
-            ->willReturn('http://example.com/cron/trigger');
-
         $result = $this->extension->renderCronAutoTrigger();
 
         // 验证立即执行函数
@@ -114,17 +97,15 @@ class CronJobExtensionTest extends TestCase
     {
         // 测试通过环境变量设置自定义 interval 值
         $_ENV['CRON_AUTO_TRIGGER_INTERVAL'] = '120000'; // 120 秒
-        $customExtension = new CronJobExtension($this->urlGenerator);
-        
-        $this->urlGenerator->expects($this->once())
-            ->method('generate')
-            ->willReturn('http://example.com/cron/trigger');
+
+        // 从容器获取新的扩展实例以读取环境变量
+        $customExtension = self::getService(CronJobExtension::class);
 
         $result = $customExtension->renderCronAutoTrigger();
-        
+
         // 验证使用了环境变量的 interval 值
         $this->assertStringContainsString('const interval = 120000;', $result);
-        
+
         // 清理环境变量
         unset($_ENV['CRON_AUTO_TRIGGER_INTERVAL']);
     }
@@ -134,24 +115,22 @@ class CronJobExtensionTest extends TestCase
         // 测试 renderCronAutoTrigger 方法的参数会覆盖环境变量的值
         $_ENV['CRON_AUTO_TRIGGER_INTERVAL'] = '120000';
         $methodInterval = 30000;
-        $customExtension = new CronJobExtension($this->urlGenerator);
-        
-        $this->urlGenerator->expects($this->once())
-            ->method('generate')
-            ->willReturn('http://example.com/cron/trigger');
+
+        // 从容器获取新的扩展实例以读取环境变量
+        $customExtension = self::getService(CronJobExtension::class);
 
         $result = $customExtension->renderCronAutoTrigger($methodInterval);
-        
+
         // 验证使用了方法参数的 interval 值，而不是环境变量的值
         $this->assertStringContainsString('const interval = 30000;', $result);
-        
+
         // 清理环境变量
         unset($_ENV['CRON_AUTO_TRIGGER_INTERVAL']);
     }
 
-    protected function setUp(): void
+    protected function onSetUp(): void
     {
-        $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $this->extension = new CronJobExtension($this->urlGenerator);
+        // 从容器获取服务
+        $this->extension = self::getService(CronJobExtension::class);
     }
 }

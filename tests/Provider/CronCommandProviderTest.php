@@ -2,33 +2,45 @@
 
 namespace Tourze\Symfony\CronJob\Tests\Provider;
 
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 use Tourze\Symfony\CronJob\Provider\CronCommandProvider;
 
-class CronCommandProviderTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(CronCommandProvider::class)]
+#[RunTestsInSeparateProcesses]
+final class CronCommandProviderTest extends AbstractIntegrationTestCase
 {
-    public function test_tag_name_constant_value()
+    protected function onSetUp(): void
+    {
+        // 不需要额外的设置
+    }
+
+    public function testTagNameConstantValue(): void
     {
         $this->assertEquals('cron-command-provider', CronCommandProvider::TAG_NAME);
     }
 
-    public function test_interface_has_get_commands_method()
+    public function testInterfaceHasGetCommandsMethod(): void
     {
         $reflectionClass = new \ReflectionClass(CronCommandProvider::class);
         $this->assertTrue($reflectionClass->hasMethod('getCommands'));
 
         $method = $reflectionClass->getMethod('getCommands');
         $this->assertTrue($method->isPublic());
-        
+
         $returnType = $method->getReturnType();
         if ($returnType instanceof \ReflectionNamedType) {
             $this->assertEquals('iterable', $returnType->getName());
         } else {
-            $this->fail('Expected ReflectionNamedType for return type');
+            self::fail('Expected ReflectionNamedType for return type');
         }
     }
 
-    public function test_is_autoconfigured_with_tag()
+    public function testIsAutoconfiguredWithTag(): void
     {
         $reflectionClass = new \ReflectionClass(CronCommandProvider::class);
         $attributes = $reflectionClass->getAttributes();
@@ -37,7 +49,7 @@ class CronCommandProviderTest extends TestCase
 
         $found = false;
         foreach ($attributes as $attribute) {
-            if ($attribute->getName() === 'Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag') {
+            if ('Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag' === $attribute->getName()) {
                 $arguments = $attribute->getArguments();
                 $this->assertCount(1, $arguments);
                 $this->assertEquals(CronCommandProvider::TAG_NAME, $arguments['name']);

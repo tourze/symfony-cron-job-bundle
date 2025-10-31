@@ -3,14 +3,13 @@
 namespace Tourze\Symfony\CronJob\Service;
 
 use Cron\CronExpression;
-use DateTimeImmutable;
+use Monolog\Attribute\WithMonologChannel;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
-use Symfony\Component\Messenger\MessageBusInterface;
-use Tourze\AsyncCommandBundle\Message\RunCommandMessage;
-use Tourze\DoctrineHelper\ReflectionHelper;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
+use Tourze\AsyncCommandBundle\Service\AsyncCommandService;
 use Tourze\LockServiceBundle\Service\LockService;
 use Tourze\Symfony\CronJob\Attribute\AsCronTask;
 use Tourze\Symfony\CronJob\Provider\CronCommandProvider;
@@ -19,14 +18,19 @@ use Tourze\Symfony\CronJob\Provider\CronCommandProvider;
  * 统一的定时任务触发服务
  * 用于处理所有类型的定时任务触发（命令行、HTTP、事件）
  */
+#[WithMonologChannel(channel: 'cron_job')]
 class CronTriggerService
 {
     private const TRIGGER_LOCK_KEY = 'cron-trigger';
 
+    /**
+     * @param iterable<Command> $commands
+     * @param iterable<CronCommandProvider> $providers
+     */
     public function __construct(
-        #[TaggedIterator(tag: AsCronTask::TAG_NAME)] private readonly iterable $commands,
-        #[TaggedIterator(tag: CronCommandProvider::TAG_NAME)] private readonly iterable $providers,
-        private readonly MessageBusInterface $messageBus,
+        #[AutowireIterator(tag: AsCronTask::TAG_NAME)] private readonly iterable $commands,
+        #[AutowireIterator(tag: CronCommandProvider::TAG_NAME)] private readonly iterable $providers,
+        private readonly AsyncCommandService $asyncCommandService,
         private readonly LoggerInterface $logger,
         private readonly LockService $lockService,
         #[Autowire(service: 'cache.app')]
@@ -39,10 +43,10 @@ class CronTriggerService
      */
     public function triggerScheduledTasks(): bool
     {
-        $now = new DateTimeImmutable();
+        $now = new \DateTimeImmutable();
         $minute = $now->format('YmdHi');
         $cacheKey = self::TRIGGER_LOCK_KEY . '-' . $minute;
-        
+
         // 先检查缓存，如果该分钟已执行过则直接返回
         $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
@@ -50,6 +54,7 @@ class CronTriggerService
                 'minute' => $minute,
                 'cache_key' => $cacheKey,
             ]);
+
             return false;
         }
 
@@ -61,6 +66,7 @@ class CronTriggerService
                 'minute' => $minute,
                 'lock_key' => $cacheKey,
             ]);
+
             return false;
         }
 
@@ -71,6 +77,7 @@ class CronTriggerService
                 'minute' => $minute,
                 'cache_key' => $cacheKey,
             ]);
+
             return false;
         }
 
@@ -98,6 +105,7 @@ class CronTriggerService
                 'exception' => $e,
                 'minute' => $minute,
             ]);
+
             return false;
         }
     }
@@ -105,7 +113,7 @@ class CronTriggerService
     /**
      * 处理所有定时任务
      */
-    private function processTasks(DateTimeImmutable $now): int
+    private function processTasks(\DateTimeImmutable $now): int
     {
         $tasksTriggered = 0;
 
@@ -121,26 +129,19 @@ class CronTriggerService
     /**
      * 处理基于属性的定时任务
      */
-    private function processAttributeTasks(DateTimeImmutable $now): int
+    private function processAttributeTasks(\DateTimeImmutable $now): int
     {
         $tasksTriggered = 0;
 
         foreach ($this->commands as $command) {
-            if ($command->getName() === 'cron:run') {
+            if ('cron:run' === $command->getName()) {
                 continue; // 跳过自己
             }
 
-            $attributes = ReflectionHelper::getClassReflection($command)->getAttributes(AsCronTask::class);
+            $attributes = (new \ReflectionClass($command))->getAttributes(AsCronTask::class);
             foreach ($attributes as $attribute) {
-                $instance = $attribute->newInstance();
-                $tagData = $instance->tags[0][AsCronTask::TAG_NAME];
-                
-                if (!$this->shouldExecuteTask($tagData['expression'], $now)) {
-                    continue;
-                }
-
-                if ($this->triggerTask($command->getName(), [], $now, $tagData['lockTtl'] ?? null)) {
-                    $tasksTriggered++;
+                if ($this->processAttributeTask($attribute, $command, $now)) {
+                    ++$tasksTriggered;
                 }
             }
         }
@@ -149,30 +150,100 @@ class CronTriggerService
     }
 
     /**
+     * 处理单个基于属性的定时任务
+     *
+     * @param \ReflectionAttribute<AsCronTask> $attribute
+     */
+    private function processAttributeTask(
+        \ReflectionAttribute $attribute,
+        Command $command,
+        \DateTimeImmutable $now
+    ): bool {
+        $tagData = $this->extractTaskTagData($attribute);
+        if (null === $tagData) {
+            return false;
+        }
+
+        $expression = $tagData['expression'];
+        assert(is_string($expression));
+
+        if (!$this->shouldExecuteTask($expression, $now)) {
+            return false;
+        }
+
+        return $this->triggerAttributeTask($command, $tagData, $now);
+    }
+
+    /**
+     * 提取任务标签数据
+     *
+     * @param \ReflectionAttribute<AsCronTask> $attribute
+     * @return (array<string, mixed>&array{expression: string})|null
+     */
+    private function extractTaskTagData(\ReflectionAttribute $attribute): ?array
+    {
+        $instance = $attribute->newInstance();
+        $tags = $instance->tags;
+        if (!isset($tags[0][AsCronTask::TAG_NAME])) {
+            return null;
+        }
+        $tagData = $tags[0][AsCronTask::TAG_NAME];
+
+        // 类型检查：确保 tagData 是数组且包含必要的键
+        if (!is_array($tagData) || !isset($tagData['expression']) || !is_string($tagData['expression'])) {
+            return null;
+        }
+
+        /** @var array<string, mixed>&array{expression: string} $tagData */
+        return $tagData;
+    }
+
+    /**
+     * 触发基于属性的任务
+     *
+     * @param array<string, mixed> $tagData
+     */
+    private function triggerAttributeTask(Command $command, array $tagData, \DateTimeImmutable $now): bool
+    {
+        $commandName = $command->getName();
+        if (null === $commandName) {
+            return false;
+        }
+
+        $lockTtl = isset($tagData['lockTtl']) && is_int($tagData['lockTtl']) ? $tagData['lockTtl'] : null;
+
+        return $this->triggerTask($commandName, [], $now, $lockTtl);
+    }
+
+    /**
      * 检查任务是否应该执行
      */
-    private function shouldExecuteTask(string $expression, DateTimeImmutable $time): bool
+    private function shouldExecuteTask(string $expression, \DateTimeImmutable $time): bool
     {
         try {
             $cron = new CronExpression($expression);
+
             return $cron->isDue($time);
         } catch (\Throwable $exception) {
             $this->logger->error('定时任务检查时间失败', [
                 'expression' => $expression,
                 'exception' => $exception,
             ]);
+
             return false;
         }
     }
 
     /**
      * 触发单个任务
+     *
+     * @param array<string, mixed> $options
      */
     private function triggerTask(
         string $command,
         array $options,
-        DateTimeImmutable $time,
-        ?int $lockTtl = null
+        \DateTimeImmutable $time,
+        ?int $lockTtl = null,
     ): bool {
         $lockKey = $this->generateTaskLockKey($command, $options, $time);
         $cacheKey = 'task-' . $lockKey;
@@ -187,6 +258,7 @@ class CronTriggerService
                 'command' => $command,
                 'cache_key' => $cacheKey,
             ]);
+
             return false;
         }
 
@@ -199,6 +271,7 @@ class CronTriggerService
                 'key' => $lockKey,
                 'command' => $command,
             ]);
+
             return false;
         }
 
@@ -209,6 +282,7 @@ class CronTriggerService
                 'command' => $command,
                 'cache_key' => $cacheKey,
             ]);
+
             return false;
         }
 
@@ -225,14 +299,18 @@ class CronTriggerService
 
     /**
      * 生成任务锁键名
+     *
+     * @param array<string, mixed> $options
      */
-    private function generateTaskLockKey(string $command, array $options, DateTimeImmutable $time): string
+    private function generateTaskLockKey(string $command, array $options, \DateTimeImmutable $time): string
     {
         return str_replace(':', '-', $command) . md5(serialize($options)) . '-cron-' . $time->format('YmdHi00');
     }
 
     /**
      * 分发消息到消息队列
+     *
+     * @param array<string, mixed> $options
      */
     private function dispatchMessage(string $command, array $options): void
     {
@@ -241,10 +319,7 @@ class CronTriggerService
         ]);
 
         try {
-            $message = new RunCommandMessage();
-            $message->setCommand($command);
-            $message->setOptions($options);
-            $this->messageBus->dispatch($message);
+            $this->asyncCommandService->runCommand($command, $options);
         } catch (\Throwable $exception) {
             $this->logger->error('生成定时任务异步任务失败', [
                 'command' => $command,
@@ -256,7 +331,7 @@ class CronTriggerService
     /**
      * 处理基于提供者的定时任务
      */
-    private function processProviderTasks(DateTimeImmutable $now): int
+    private function processProviderTasks(\DateTimeImmutable $now): int
     {
         $tasksTriggered = 0;
 
@@ -272,7 +347,7 @@ class CronTriggerService
                     $now,
                     $commandRequest->getLockTtl()
                 )) {
-                    $tasksTriggered++;
+                    ++$tasksTriggered;
                 }
             }
         }

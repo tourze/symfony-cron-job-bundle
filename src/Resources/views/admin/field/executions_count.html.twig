@@ -1,0 +1,15 @@
+{#
+   自定义字段模板：显示定时任务执行记录数量
+   用于 EasyAdmin 的 AssociationField 显示
+#}
+{% set count = entity.instance.executions.count %}
+
+<span class="badge badge-{{ count > 0 ? 'info' : 'secondary' }}">
+    {{ count }} 次执行
+</span>
+
+{% if count > 0 %}
+    <small class="text-muted d-block">
+        最后执行: {{ entity.instance.lastExecuteTime ? entity.instance.lastExecuteTime|date('Y-m-d H:i:s') : '未知' }}
+    </small>
+{% endif %}

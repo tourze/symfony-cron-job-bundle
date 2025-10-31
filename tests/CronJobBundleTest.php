@@ -1,24 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\Symfony\CronJob\Tests;
 
-use PHPUnit\Framework\TestCase;
-use Tourze\AsyncCommandBundle\AsyncCommandBundle;
-use Tourze\BundleDependency\BundleDependencyInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractBundleTestCase;
 use Tourze\Symfony\CronJob\CronJobBundle;
 
-class CronJobBundleTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(CronJobBundle::class)]
+#[RunTestsInSeparateProcesses]
+final class CronJobBundleTest extends AbstractBundleTestCase
 {
-    public function test_bundle_implements_dependency_interface()
-    {
-        $this->assertInstanceOf(BundleDependencyInterface::class, new CronJobBundle());
-    }
-
-    public function test_get_bundle_dependencies_returns_async_bundle()
-    {
-        $dependencies = CronJobBundle::getBundleDependencies();
-
-        $this->assertArrayHasKey(AsyncCommandBundle::class, $dependencies);
-        $this->assertEquals(['all' => true], $dependencies[AsyncCommandBundle::class]);
-    }
 }

@@ -2,19 +2,32 @@
 
 namespace Tourze\Symfony\CronJob\Tests\Request;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Tourze\AsyncCommandBundle\Message\RunCommandMessage;
+use Tourze\AsyncContracts\AsyncMessageInterface;
 use Tourze\Symfony\CronJob\Request\CommandRequest;
 
-class CommandRequestTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(CommandRequest::class)]
+final class CommandRequestTest extends TestCase
 {
-    public function test_extends_run_command_message()
+    public function testImplementsAsyncMessageInterface(): void
     {
         $request = new CommandRequest();
-        $this->assertInstanceOf(RunCommandMessage::class, $request);
+        $this->assertInstanceOf(AsyncMessageInterface::class, $request);
     }
 
-    public function test_get_set_cron_expression()
+    public function testWrapsRunCommandMessage(): void
+    {
+        $request = new CommandRequest();
+        $this->assertInstanceOf(RunCommandMessage::class, $request->getRunCommandMessage());
+    }
+
+    public function testGetSetCronExpression(): void
     {
         $request = new CommandRequest();
 
@@ -29,7 +42,7 @@ class CommandRequestTest extends TestCase
         $this->assertEquals($newExpression, $request->getCronExpression());
     }
 
-    public function test_inherits_command_and_options_from_parent()
+    public function testDelegatesCommandAndOptionsToWrappedMessage(): void
     {
         $request = new CommandRequest();
         $command = 'app:test-command';
@@ -40,9 +53,14 @@ class CommandRequestTest extends TestCase
 
         $this->assertEquals($command, $request->getCommand());
         $this->assertEquals($options, $request->getOptions());
+
+        // Verify the wrapped message also has the same values
+        $wrappedMessage = $request->getRunCommandMessage();
+        $this->assertEquals($command, $wrappedMessage->getCommand());
+        $this->assertEquals($options, $wrappedMessage->getOptions());
     }
 
-    public function test_get_set_lock_ttl()
+    public function testGetSetLockTtl(): void
     {
         $request = new CommandRequest();
 
@@ -58,5 +76,4 @@ class CommandRequestTest extends TestCase
         $request->setLockTtl(null);
         $this->assertNull($request->getLockTtl());
     }
-
 }

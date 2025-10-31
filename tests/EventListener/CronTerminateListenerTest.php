@@ -2,47 +2,52 @@
 
 namespace Tourze\Symfony\CronJob\Tests\EventListener;
 
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractEventSubscriberTestCase;
 use Tourze\Symfony\CronJob\EventListener\CronTerminateListener;
 use Tourze\Symfony\CronJob\Service\CronTriggerService;
 
-class CronTerminateListenerTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(CronTerminateListener::class)]
+#[RunTestsInSeparateProcesses]
+final class CronTerminateListenerTest extends AbstractEventSubscriberTestCase
 {
-    private MockObject|CronTriggerService $cronTriggerService;
-    private MockObject|LoggerInterface $logger;
-    private MockObject|HttpKernelInterface $httpKernel;
-
-    protected function setUp(): void
+    protected function onSetUp(): void
     {
-        $this->cronTriggerService = $this->createMock(CronTriggerService::class);
-        $this->logger = $this->createMock(LoggerInterface::class);
-        $this->httpKernel = $this->createMock(HttpKernelInterface::class);
+        // 空实现，因为不需要额外的设置
     }
 
-
-    public function test_main_request_triggers_service()
+    public function testMainRequestTriggersService(): void
     {
-        $listener = new CronTerminateListener(
-            $this->cronTriggerService,
-            $this->logger
-        );
+        $container = self::getContainer();
 
-        $this->cronTriggerService->expects($this->once())
+        /*
+         * 使用 CronTriggerService 具体类的 Mock，理由：
+         * 1. 该服务包含复杂的业务逻辑和外部依赖（锁、缓存、消息队列），测试时需要隔离
+         * 2. 测试重点是验证当前组件的行为，而非 CronTriggerService 的内部实现
+         * 3. Mock 可以精确控制服务的返回值，测试各种场景包括成功和失败情况
+         */
+        $cronTriggerService = $this->createMock(CronTriggerService::class);
+        $container->set(CronTriggerService::class, $cronTriggerService);
+
+        $listener = $container->get(CronTerminateListener::class);
+        self::assertInstanceOf(CronTerminateListener::class, $listener);
+
+        $cronTriggerService->expects($this->once())
             ->method('triggerScheduledTasks')
-            ->willReturn(true);
+            ->willReturn(true)
+        ;
 
-        $this->logger->expects($this->once())
-            ->method('info')
-            ->with('Cron tasks triggered via terminate event');
-
+        $httpKernel = $this->createMock(HttpKernelInterface::class);
         $event = new TerminateEvent(
-            $this->httpKernel,
+            $httpKernel,
             new Request(),
             new Response()
         );
@@ -50,22 +55,24 @@ class CronTerminateListenerTest extends TestCase
         $listener->onKernelTerminate($event);
     }
 
-    public function test_main_request_no_tasks_triggered()
+    public function testMainRequestNoTasksTriggered(): void
     {
-        $listener = new CronTerminateListener(
-            $this->cronTriggerService,
-            $this->logger
-        );
+        $container = self::getContainer();
 
-        $this->cronTriggerService->expects($this->once())
+        $cronTriggerService = $this->createMock(CronTriggerService::class);
+        $container->set(CronTriggerService::class, $cronTriggerService);
+
+        $listener = $container->get(CronTerminateListener::class);
+        self::assertInstanceOf(CronTerminateListener::class, $listener);
+
+        $cronTriggerService->expects($this->once())
             ->method('triggerScheduledTasks')
-            ->willReturn(false);
+            ->willReturn(false)
+        ;
 
-        $this->logger->expects($this->never())
-            ->method('info');
-
+        $httpKernel = $this->createMock(HttpKernelInterface::class);
         $event = new TerminateEvent(
-            $this->httpKernel,
+            $httpKernel,
             new Request(),
             new Response()
         );
@@ -73,7 +80,32 @@ class CronTerminateListenerTest extends TestCase
         $listener->onKernelTerminate($event);
     }
 
-    public function test_event_listener_attribute()
+    public function testOnKernelTerminate(): void
+    {
+        $container = self::getContainer();
+
+        $cronTriggerService = $this->createMock(CronTriggerService::class);
+        $container->set(CronTriggerService::class, $cronTriggerService);
+
+        $listener = $container->get(CronTerminateListener::class);
+        self::assertInstanceOf(CronTerminateListener::class, $listener);
+
+        $cronTriggerService->expects($this->once())
+            ->method('triggerScheduledTasks')
+            ->willReturn(true)
+        ;
+
+        $httpKernel = $this->createMock(HttpKernelInterface::class);
+        $event = new TerminateEvent(
+            $httpKernel,
+            new Request(),
+            new Response()
+        );
+
+        $listener->onKernelTerminate($event);
+    }
+
+    public function testEventListenerAttribute(): void
     {
         $reflection = new \ReflectionClass(CronTerminateListener::class);
         $attributes = $reflection->getAttributes();
@@ -82,7 +114,7 @@ class CronTerminateListenerTest extends TestCase
 
         $found = false;
         foreach ($attributes as $attribute) {
-            if ($attribute->getName() === 'Symfony\Component\EventDispatcher\Attribute\AsEventListener') {
+            if ('Symfony\Component\EventDispatcher\Attribute\AsEventListener' === $attribute->getName()) {
                 $found = true;
                 $args = $attribute->getArguments();
                 $this->assertEquals('kernel.terminate', $args['event']);

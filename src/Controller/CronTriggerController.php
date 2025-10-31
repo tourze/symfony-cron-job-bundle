@@ -2,6 +2,7 @@
 
 namespace Tourze\Symfony\CronJob\Controller;
 
+use Monolog\Attribute\WithMonologChannel;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,7 +14,8 @@ use Tourze\Symfony\CronJob\Service\CronTriggerService;
  * HTTP 层触发定时任务的控制器
  * 用于在无法部署传统 cron 任务的环境（如 Serverless）中执行定时任务
  */
-class CronTriggerController
+#[WithMonologChannel(channel: 'cron_job')]
+final class CronTriggerController
 {
     public function __construct(
         private readonly CronTriggerService $cronTriggerService,
@@ -25,7 +27,7 @@ class CronTriggerController
      * HTTP 轮询触发定时任务
      */
     #[Route(path: '/cron/trigger', name: 'cron_job_http_trigger', methods: ['POST'])]
-    public function trigger(Request $request): JsonResponse
+    public function __invoke(Request $request): JsonResponse
     {
         // 使用统一的触发服务
         $success = $this->cronTriggerService->triggerScheduledTasks();

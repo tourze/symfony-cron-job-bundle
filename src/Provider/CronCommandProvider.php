@@ -3,14 +3,17 @@
 namespace Tourze\Symfony\CronJob\Provider;
 
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+use Tourze\Symfony\CronJob\Request\CommandRequest;
 
-#[AutoconfigureTag(name: CronCommandProvider::TAG_NAME)]
+#[AutoconfigureTag(name: self::TAG_NAME)]
 interface CronCommandProvider
 {
-    const TAG_NAME = 'cron-command-provider';
+    public const TAG_NAME = 'cron-command-provider';
 
     /**
      * 获取要执行的命令
+     *
+     * @return iterable<CommandRequest>
      */
     public function getCommands(): iterable;
 }

@@ -2,6 +2,7 @@
 
 namespace Tourze\Symfony\CronJob\EventListener;
 
+use Monolog\Attribute\WithMonologChannel;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
@@ -13,13 +14,13 @@ use Tourze\Symfony\CronJob\Service\CronTriggerService;
  * 适用于 Serverless 环境或需要在 HTTP 请求生命周期内执行定时任务的场景
  */
 #[AsEventListener(event: KernelEvents::TERMINATE, method: 'onKernelTerminate', priority: -1024)]
+#[WithMonologChannel(channel: 'cron_job')]
 class CronTerminateListener
 {
     public function __construct(
         private readonly CronTriggerService $cronTriggerService,
         private readonly LoggerInterface $logger,
-    )
-    {
+    ) {
     }
 
     public function onKernelTerminate(TerminateEvent $event): void

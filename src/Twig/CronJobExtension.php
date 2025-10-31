@@ -28,90 +28,94 @@ class CronJobExtension extends AbstractExtension
     /**
      * 渲染自动触发定时任务的 JavaScript 代码
      *
-     * @param int|null $interval 触发间隔（毫秒），默认 60000（60秒）
-     * @param array<string, mixed> $options 选项配置
-     *  - bool debug: 是否开启调试日志
-     *  - int maxRetries: 最大重试次数
-     *  - int retryDelay: 重试延迟（毫秒）
+     * @param int|null             $interval 触发间隔（毫秒），默认 60000（60秒）
+     * @param array<string, mixed> $options  选项配置
+     *                                       - bool debug: 是否开启调试日志
+     *                                       - int maxRetries: 最大重试次数
+     *                                       - int retryDelay: 重试延迟（毫秒）
      */
     public function renderCronAutoTrigger(?int $interval = null, array $options = []): string
     {
         // 从环境变量读取，如果不存在则使用默认值 60000
-        $defaultInterval = isset($_ENV['CRON_AUTO_TRIGGER_INTERVAL']) ? (int) $_ENV['CRON_AUTO_TRIGGER_INTERVAL'] : 60000;
-        $interval = $interval ?? $defaultInterval;
+        $envInterval = $_ENV['CRON_AUTO_TRIGGER_INTERVAL'] ?? null;
+        $defaultInterval = is_numeric($envInterval) ? (int) $envInterval : 60000;
+        $interval ??= $defaultInterval;
         $triggerUrl = $this->urlGenerator->generate('cron_job_http_trigger', [], UrlGeneratorInterface::ABSOLUTE_URL);
-        
+
         $debug = $options['debug'] ?? false;
-        $maxRetries = $options['maxRetries'] ?? 3;
-        $retryDelay = $options['retryDelay'] ?? 5000;
+        $maxRetriesRaw = $options['maxRetries'] ?? 3;
+        $retryDelayRaw = $options['retryDelay'] ?? 5000;
+
+        $maxRetries = is_numeric($maxRetriesRaw) ? (int) $maxRetriesRaw : 3;
+        $retryDelay = is_numeric($retryDelayRaw) ? (int) $retryDelayRaw : 5000;
 
         $debugJs = (bool) $debug ? 'true' : 'false';
 
         return <<<HTML
-<script>
-(function() {
-    const cronTriggerUrl = '{$triggerUrl}';
-    const interval = {$interval};
-    const debug = {$debugJs};
-    const maxRetries = {$maxRetries};
-    const retryDelay = {$retryDelay};
-    
-    let retryCount = 0;
+            <script>
+            (function() {
+                const cronTriggerUrl = '{$triggerUrl}';
+                const interval = {$interval};
+                const debug = {$debugJs};
+                const maxRetries = {$maxRetries};
+                const retryDelay = {$retryDelay};
+                
+                let retryCount = 0;
 
-    async function triggerCron() {
-        try {
-            const response = await fetch(cronTriggerUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({
-                    source: 'auto-trigger',
-                    timestamp: Date.now()
-                })
-            });
+                async function triggerCron() {
+                    try {
+                        const response = await fetch(cronTriggerUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                source: 'auto-trigger',
+                                timestamp: Date.now()
+                            })
+                        });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: \${response.status}`);
-            }
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: \${response.status}`);
+                        }
 
-            const data = await response.json();
-            
-            if (debug) {
-                console.log('[CronJob] Trigger response:', data);
-            }
-            
-            // 重置重试计数
-            retryCount = 0;
-            
-        } catch (error) {
-            if (debug) {
-                console.error('[CronJob] Trigger error:', error);
-            }
-            
-            // 实现重试逻辑
-            if (retryCount < maxRetries) {
-                retryCount++;
-                if (debug) {
-                    console.log(`[CronJob] Retrying in \${retryDelay}ms... (attempt \${retryCount}/\${maxRetries})`);
+                        const data = await response.json();
+                        
+                        if (debug) {
+                            console.log('[CronJob] Trigger response:', data);
+                        }
+                        
+                        // 重置重试计数
+                        retryCount = 0;
+                        
+                    } catch (error) {
+                        if (debug) {
+                            console.error('[CronJob] Trigger error:', error);
+                        }
+                        
+                        // 实现重试逻辑
+                        if (retryCount < maxRetries) {
+                            retryCount++;
+                            if (debug) {
+                                console.log(`[CronJob] Retrying in \${retryDelay}ms... (attempt \${retryCount}/\${maxRetries})`);
+                            }
+                            setTimeout(triggerCron, retryDelay);
+                        }
+                    }
                 }
-                setTimeout(triggerCron, retryDelay);
-            }
-        }
-    }
 
-    // 初始延迟执行
-    setTimeout(triggerCron, 1000);
-    
-    // 定时执行
-    setInterval(triggerCron, interval);
-    
-    if (debug) {
-        console.log(`[CronJob] Auto-trigger initialized with interval: \${interval}ms`);
-    }
-})();
-</script>
-HTML;
+                // 初始延迟执行
+                setTimeout(triggerCron, 1000);
+                
+                // 定时执行
+                setInterval(triggerCron, interval);
+                
+                if (debug) {
+                    console.log(`[CronJob] Auto-trigger initialized with interval: \${interval}ms`);
+                }
+            })();
+            </script>
+            HTML;
     }
 }

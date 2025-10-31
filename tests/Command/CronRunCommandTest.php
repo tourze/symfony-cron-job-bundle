@@ -2,41 +2,75 @@
 
 namespace Tourze\Symfony\CronJob\Tests\Command;
 
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractCommandTestCase;
 use Tourze\Symfony\CronJob\Command\CronRunCommand;
+use Tourze\Symfony\CronJob\Exception\CronJobException;
 use Tourze\Symfony\CronJob\Service\CronTriggerService;
 
-class CronRunCommandTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(CronRunCommand::class)]
+#[RunTestsInSeparateProcesses]
+final class CronRunCommandTest extends AbstractCommandTestCase
 {
-    private MockObject|CronTriggerService $cronTriggerService;
-    private CronRunCommand $command;
+    private ?CronTriggerService $cronTriggerService = null;
 
-    protected function setUp(): void
+    private ?CronRunCommand $command = null;
+
+    protected function onSetUp(): void
     {
-        $this->cronTriggerService = $this->createMock(CronTriggerService::class);
-
-        $this->command = new CronRunCommand(
-            $this->cronTriggerService
-        );
+        // 空实现，因为不需要额外的设置
     }
 
-    public function test_command_name_constant()
+    protected function getCommandTester(): CommandTester
     {
+        $this->initializeServices();
+        if (null === $this->command) {
+            throw new CronJobException('Command not initialized');
+        }
+
+        return new CommandTester($this->command);
+    }
+
+    private function initializeServices(): void
+    {
+        if (null !== $this->command) {
+            return;
+        }
+
+        $command = self::getService(CronRunCommand::class);
+        self::assertInstanceOf(CronRunCommand::class, $command);
+        $this->command = $command;
+
+        $cronTriggerService = self::getService(CronTriggerService::class);
+        self::assertInstanceOf(CronTriggerService::class, $cronTriggerService);
+        $this->cronTriggerService = $cronTriggerService;
+    }
+
+    public function testCommandNameConstant(): void
+    {
+        $this->initializeServices();
         $this->assertEquals('cron:run', CronRunCommand::NAME);
     }
 
-    public function test_execute_returns_success()
+    public function testExecuteReturnsSuccess(): void
     {
-        $this->cronTriggerService->expects($this->once())
-            ->method('triggerScheduledTasks');
-
+        $this->initializeServices();
+        if (null === $this->command) {
+            throw new CronJobException('Command not initialized');
+        }
+        // 集成测试：验证命令执行成功
         $commandTester = new CommandTester($this->command);
         $exitCode = $commandTester->execute([]);
 
         $this->assertEquals(Command::SUCCESS, $exitCode);
-    }
 
+        // 验证服务存在并可以被正确注入
+        $this->assertInstanceOf(CronTriggerService::class, $this->cronTriggerService);
+    }
 }

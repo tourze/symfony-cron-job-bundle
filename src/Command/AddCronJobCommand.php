@@ -17,10 +17,10 @@ use TiBeN\CrontabManager\CrontabRepository;
 class AddCronJobCommand extends Command
 {
     public const NAME = 'cron-job:add-cron-tab';
+
     public function __construct(
         private readonly KernelInterface $kernel,
-    )
-    {
+    ) {
         parent::__construct();
     }
 
@@ -31,8 +31,8 @@ class AddCronJobCommand extends Command
         $rootDir = $this->kernel->getProjectDir();
         $caPathOrFile = CaBundle::getSystemCaRootBundlePath();
 
-        $cmd = "{$phpExecutable} -d openssl.cafile=$caPathOrFile {$rootDir}/bin/console " . CronRunCommand::NAME;
-        $output->writeln("cmd: " . $cmd);
+        $cmd = "{$phpExecutable} -d openssl.cafile={$caPathOrFile} {$rootDir}/bin/console " . CronRunCommand::NAME;
+        $output->writeln('cmd: ' . $cmd);
 
         $hasJob = false;
         $crontabJob = null;
@@ -56,11 +56,14 @@ class AddCronJobCommand extends Command
                 ->setDayOfMonth('*')
                 ->setMonths('*')
                 ->setDayOfWeek('*')
-                ->setTaskCommandLine($cmd);
+                ->setTaskCommandLine($cmd)
+            ;
         }
 
-        $crontabJob->setEnabled(true);
-        $crontabRepository->addJob($crontabJob);
+        if (null !== $crontabJob) {
+            $crontabJob->setEnabled(true);
+            $crontabRepository->addJob($crontabJob);
+        }
         $crontabRepository->persist();
 
         return Command::SUCCESS;

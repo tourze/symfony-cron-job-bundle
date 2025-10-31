@@ -4,14 +4,14 @@ namespace Tourze\Symfony\CronJob\Attribute;
 
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
-#[\Attribute(\Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
+#[\Attribute(flags: \Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
 class AsCronTask extends AutoconfigureTag
 {
-    const TAG_NAME = 'tourze.job-cron.schedule';
+    public const TAG_NAME = 'tourze.job-cron.schedule';
 
     public function __construct(
         string $expression = '* * * * *',
-        ?int $lockTtl = null
+        ?int $lockTtl = null,
     ) {
         parent::__construct(self::TAG_NAME, [
             'expression' => $expression,

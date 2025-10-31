@@ -25,6 +25,7 @@ class CronRunCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->cronTriggerService->triggerScheduledTasks();
+
         return Command::SUCCESS;
     }
 }

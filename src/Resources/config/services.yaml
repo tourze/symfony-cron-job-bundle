@@ -10,8 +10,8 @@ services:
     resource: '../../Controller/'
   Tourze\Symfony\CronJob\EventListener\:
     resource: '../../EventListener/'
-  Tourze\Symfony\CronJob\Provider\:
-    resource: '../../Provider/'
+  # Provider namespace contains only the interface, no implementation classes
+  # Individual providers should be configured in their respective bundles
   Tourze\Symfony\CronJob\Service\:
     resource: '../../Service/'
   

@@ -29,6 +29,7 @@ class AttributeControllerLoader extends Loader implements RoutingAutoLoaderInter
     {
         $collection = new RouteCollection();
         $collection->addCollection($this->controllerLoader->load(CronTriggerController::class));
+
         return $collection;
     }
 

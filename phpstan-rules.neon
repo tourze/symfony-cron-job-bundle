@@ -1,0 +1,5 @@
+services:
+    -
+        class: Tourze\Symfony\CronJob\PHPStan\Rules\RequireAsCommandAttributeRule
+        tags:
+            - phpstan.rules.rule
