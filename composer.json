@@ -40,7 +40,7 @@
     "tourze/doctrine-helper": "0.0.*",
     "tourze/doctrine-timestamp-bundle": "1.0.*",
     "tourze/easy-admin-menu-bundle": "1.0.*",
-    "tourze/lock-service-bundle": "0.1.*",
+    "tourze/lock-service-bundle": "1.0.*",
     "tourze/symfony-dependency-service-loader": "1.*",
     "tourze/symfony-routing-auto-loader-bundle": "0.0.*",
     "twig/twig": "^3.21"
