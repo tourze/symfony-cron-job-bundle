@@ -37,7 +37,7 @@
     "tourze/async-command-bundle": "1.0.*",
     "tourze/async-contracts": "0.0.*",
     "tourze/bundle-dependency": "1.*",
-    "tourze/doctrine-helper": "0.0.*",
+    "tourze/doctrine-helper": "1.0.*",
     "tourze/doctrine-timestamp-bundle": "1.0.*",
     "tourze/easy-admin-menu-bundle": "1.0.*",
     "tourze/lock-service-bundle": "1.0.*",
