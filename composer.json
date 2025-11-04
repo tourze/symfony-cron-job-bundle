@@ -35,7 +35,7 @@
     "symfony/yaml": "^7.3",
     "tiben/crontab-manager": "^1.4",
     "tourze/async-command-bundle": "1.0.*",
-    "tourze/async-contracts": "0.0.*",
+    "tourze/async-contracts": "1.0.*",
     "tourze/bundle-dependency": "1.*",
     "tourze/doctrine-helper": "1.0.*",
     "tourze/doctrine-timestamp-bundle": "1.0.*",
