@@ -15,11 +15,11 @@ use Tourze\Symfony\CronJob\Service\CronTriggerService;
  */
 #[AsEventListener(event: KernelEvents::TERMINATE, method: 'onKernelTerminate', priority: -1024)]
 #[WithMonologChannel(channel: 'cron_job')]
-class CronTerminateListener
+readonly class CronTerminateListener
 {
     public function __construct(
-        private readonly CronTriggerService $cronTriggerService,
-        private readonly LoggerInterface $logger,
+        private CronTriggerService $cronTriggerService,
+        private LoggerInterface $logger,
     ) {
     }
 

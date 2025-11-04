@@ -15,11 +15,11 @@ use Tourze\Symfony\CronJob\Service\CronTriggerService;
  * 用于在无法部署传统 cron 任务的环境（如 Serverless）中执行定时任务
  */
 #[WithMonologChannel(channel: 'cron_job')]
-final class CronTriggerController
+final readonly class CronTriggerController
 {
     public function __construct(
-        private readonly CronTriggerService $cronTriggerService,
-        private readonly LoggerInterface $logger,
+        private CronTriggerService $cronTriggerService,
+        private LoggerInterface $logger,
     ) {
     }
 
