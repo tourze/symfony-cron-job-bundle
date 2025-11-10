@@ -30,6 +30,10 @@ readonly class CronTerminateListener
             return;
         }
 
+        if (!(bool)($_ENV['CRON_TERMINATE_TRIGGER_ENABLED'] ?? false)) {
+            return;
+        }
+
         try {
             // 直接使用统一的触发服务
             $triggered = $this->cronTriggerService->triggerScheduledTasks();

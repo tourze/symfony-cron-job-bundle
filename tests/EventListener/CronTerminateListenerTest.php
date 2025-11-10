@@ -37,6 +37,9 @@ final class CronTerminateListenerTest extends AbstractEventSubscriberTestCase
         $cronTriggerService = $this->createMock(CronTriggerService::class);
         $container->set(CronTriggerService::class, $cronTriggerService);
 
+        // 设置环境变量启用 Cron Terminate 触发器
+        $_ENV['CRON_TERMINATE_TRIGGER_ENABLED'] = '1';
+
         $listener = $container->get(CronTerminateListener::class);
         self::assertInstanceOf(CronTerminateListener::class, $listener);
 
@@ -62,6 +65,9 @@ final class CronTerminateListenerTest extends AbstractEventSubscriberTestCase
         $cronTriggerService = $this->createMock(CronTriggerService::class);
         $container->set(CronTriggerService::class, $cronTriggerService);
 
+        // 设置环境变量启用 Cron Terminate 触发器
+        $_ENV['CRON_TERMINATE_TRIGGER_ENABLED'] = '1';
+
         $listener = $container->get(CronTerminateListener::class);
         self::assertInstanceOf(CronTerminateListener::class, $listener);
 
@@ -86,6 +92,9 @@ final class CronTerminateListenerTest extends AbstractEventSubscriberTestCase
 
         $cronTriggerService = $this->createMock(CronTriggerService::class);
         $container->set(CronTriggerService::class, $cronTriggerService);
+
+        // 设置环境变量启用 Cron Terminate 触发器
+        $_ENV['CRON_TERMINATE_TRIGGER_ENABLED'] = '1';
 
         $listener = $container->get(CronTerminateListener::class);
         self::assertInstanceOf(CronTerminateListener::class, $listener);

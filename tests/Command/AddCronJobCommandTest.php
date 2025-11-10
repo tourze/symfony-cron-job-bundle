@@ -1,153 +1,97 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\Symfony\CronJob\Tests\Command;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Application;
-use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\HttpKernel\KernelInterface;
-use Tourze\PHPUnitSymfonyKernelTest\AbstractCommandTestCase;
+use Symfony\Component\Process\PhpExecutableFinder;
 use Tourze\Symfony\CronJob\Command\AddCronJobCommand;
-use Tourze\Symfony\CronJob\Exception\CronJobException;
+use TiBeN\CrontabManager\CrontabRepository;
 
 /**
- * @internal
+ * Add Cron Job Command 测试
  */
 #[CoversClass(AddCronJobCommand::class)]
-#[RunTestsInSeparateProcesses]
-final class AddCronJobCommandTest extends AbstractCommandTestCase
+class AddCronJobCommandTest extends TestCase
 {
-    private ?AddCronJobCommand $command = null;
+    private CommandTester $commandTester;
 
-    protected function onSetUp(): void
+    protected function setUp(): void
     {
-        // 空实现，因为不需要额外的设置
-    }
-
-    protected function getCommandTester(): CommandTester
-    {
+        // 初始化命令测试器
         $this->initializeCommand();
-        if (null === $this->command) {
-            throw new CronJobException('Command not initialized');
-        }
-
-        return new CommandTester($this->command);
     }
 
     private function initializeCommand(): void
     {
-        if (null !== $this->command) {
-            return;
-        }
+        $kernel = $this->createMock(KernelInterface::class);
+        $kernel->method('getProjectDir')->willReturn(dirname(__DIR__, 4));
 
-        $command = self::getService(AddCronJobCommand::class);
-        self::assertInstanceOf(AddCronJobCommand::class, $command);
-        $this->command = $command;
+        // 创建模拟的 CrontabRepository 工厂
+        $crontabRepositoryFactory = function (): CrontabRepository {
+            $mockRepository = $this->createMock(CrontabRepository::class);
+            $mockRepository->expects($this->once())
+                ->method('addJob')
+                ->willReturnSelf();
+            $mockRepository->expects($this->once())
+                ->method('persist')
+                ->willReturnSelf();
+            return $mockRepository;
+        };
 
-        // 设置Application
-        $application = new Application();
-        $application->add($this->command);
-        $this->command->setApplication($application);
+        $command = new AddCronJobCommand($kernel, $crontabRepositoryFactory);
+        $this->commandTester = new CommandTester($command);
     }
 
-    public function testCommandConfiguration(): void
+    public function testCommandSignature(): void
     {
-        $this->initializeCommand();
-        $command = $this->command;
-        if (null === $command) {
-            throw new CronJobException('Command not initialized');
-        }
+        $kernel = $this->createMock(KernelInterface::class);
+        $command = new AddCronJobCommand($kernel);
         $this->assertEquals('cron-job:add-cron-tab', $command->getName());
         $this->assertEquals('注册到Crontab', $command->getDescription());
     }
 
     public function testExecuteReturnsSuccess(): void
     {
-        $this->initializeCommand();
-        $kernel = $this->createMock(KernelInterface::class);
-        $kernel->method('getProjectDir')->willReturn('/var/www/project');
-
-        // 创建一个模拟的 AddCronJobCommand 以避免实际的 crontab 操作
-        $command = new #[AsCommand(name: self::NAME, description: 'Mock command')] class($kernel) extends AddCronJobCommand {
-            public const NAME = 'cron-job:add-cron-tab';
-
-            public function __construct(KernelInterface $kernel)
-            {
-                parent::__construct($kernel);
-            }
-
-            protected function execute(InputInterface $input, OutputInterface $output): int
-            {
-                // 模拟执行逻辑，不进行实际的 crontab 操作
-                $output->writeln('Mock crontab operation');
-
-                return Command::SUCCESS;
-            }
-        };
-
-        $application = new Application();
-        $application->add($command);
-
-        $commandTester = new CommandTester($command);
-        $exitCode = $commandTester->execute([]);
+        $exitCode = $this->commandTester->execute([]);
 
         $this->assertEquals(Command::SUCCESS, $exitCode);
-        $this->assertStringContainsString('Mock crontab operation', $commandTester->getDisplay());
+        $this->assertStringContainsString('Cron 任务已成功添加到 crontab', $this->commandTester->getDisplay());
     }
 
     public function testKernelProjectDirIsUsed(): void
     {
-        $this->initializeCommand();
+        // 创建自定义的 kernel mock 以验证调用
+        $projectDir = dirname(__DIR__, 4); // 向上4级目录到项目根
+
         $kernel = $this->createMock(KernelInterface::class);
-        $kernel->method('getProjectDir')->willReturn('/var/www/project');
+        $kernel->expects($this->once())
+            ->method('getProjectDir')
+            ->willReturn($projectDir);
 
-        // 创建一个部分模拟的 AddCronJobCommand
-        $command = new #[AsCommand(name: self::NAME, description: 'Mock command')] class($kernel) extends AddCronJobCommand {
-            public const NAME = 'cron-job:add-cron-tab';
-
-            public bool $projectDirCalled = false;
-
-            public function __construct(KernelInterface $kernel)
-            {
-                parent::__construct($kernel);
-            }
-
-            protected function execute(InputInterface $input, OutputInterface $output): int
-            {
-                // 调用父类的 kernel（通过反射访问 protected 属性）
-                $reflection = new \ReflectionClass(parent::class);
-                $kernelProperty = $reflection->getProperty('kernel');
-                $kernelProperty->setAccessible(true);
-                $kernel = $kernelProperty->getValue($this);
-                if (!$kernel instanceof KernelInterface) {
-                    throw new \RuntimeException('Expected KernelInterface instance');
-                }
-
-                $projectDir = $kernel->getProjectDir();
-                $this->projectDirCalled = true;
-                $output->writeln("Project dir: {$projectDir}");
-
-                return Command::SUCCESS;
-            }
+        $crontabRepositoryFactory = function (): CrontabRepository {
+            $mockRepository = $this->createMock(CrontabRepository::class);
+            $mockRepository->expects($this->once())
+                ->method('addJob')
+                ->willReturnSelf();
+            $mockRepository->expects($this->once())
+                ->method('persist')
+                ->willReturnSelf();
+            return $mockRepository;
         };
 
-        $application = new Application();
-        $application->add($command);
-
+        $command = new AddCronJobCommand($kernel, $crontabRepositoryFactory);
         $commandTester = new CommandTester($command);
         $exitCode = $commandTester->execute([]);
 
         $this->assertEquals(Command::SUCCESS, $exitCode);
-        $this->assertTrue($command->projectDirCalled);
-        // 检查实际的输出（kernel 返回 '/var/www/project'）
-        $this->assertStringContainsString('Project dir: /var/www/project', $commandTester->getDisplay());
-        // 宽松的断言
-        $this->assertStringContainsString('Project dir:', $commandTester->getDisplay());
+        $this->assertStringContainsString('Cron 任务已成功添加到 crontab', $commandTester->getDisplay());
     }
 
     /**
@@ -155,22 +99,25 @@ final class AddCronJobCommandTest extends AbstractCommandTestCase
      */
     public function testConstructorDependencies(): void
     {
-        $this->initializeCommand();
         $reflectionClass = new \ReflectionClass(AddCronJobCommand::class);
+
+        // 验证构造函数参数
         $constructor = $reflectionClass->getConstructor();
-        if (null === $constructor) {
-            self::fail('Constructor should exist for AddCronJobCommand class');
-        }
+        $this->assertNotNull($constructor);
+
         $parameters = $constructor->getParameters();
+        $this->assertCount(2, $parameters);
 
-        $this->assertCount(1, $parameters);
-        $this->assertEquals('kernel', $parameters[0]->getName());
+        // 验证第一个参数是 KernelInterface
+        $kernelParam = $parameters[0];
+        $this->assertEquals('kernel', $kernelParam->getName());
+        $paramType = $kernelParam->getType();
+        $this->assertInstanceOf(\ReflectionNamedType::class, $paramType);
+        $this->assertEquals(KernelInterface::class, $paramType->getName());
 
-        $parameterType = $parameters[0]->getType();
-        if ($parameterType instanceof \ReflectionNamedType) {
-            $this->assertEquals(KernelInterface::class, $parameterType->getName());
-        } else {
-            self::fail('Expected ReflectionNamedType for kernel parameter');
-        }
+        // 验证第二个参数是可选的 callable
+        $factoryParam = $parameters[1];
+        $this->assertEquals('crontabRepositoryFactory', $factoryParam->getName());
+        $this->assertTrue($factoryParam->isOptional());
     }
 }

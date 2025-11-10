@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\Symfony\CronJob\Command;
 
 use Composer\CaBundle\CaBundle;
@@ -13,59 +15,77 @@ use TiBeN\CrontabManager\CrontabAdapter;
 use TiBeN\CrontabManager\CrontabJob;
 use TiBeN\CrontabManager\CrontabRepository;
 
+/**
+ * 注册到Crontab
+ */
 #[AsCommand(name: self::NAME, description: '注册到Crontab')]
-class AddCronJobCommand extends Command
+final class AddCronJobCommand extends Command
 {
     public const NAME = 'cron-job:add-cron-tab';
 
+    /**
+     * @var callable|null Factory for creating CrontabRepository (主要用于测试)
+     */
+    private $crontabRepositoryFactory;
+
     public function __construct(
         private readonly KernelInterface $kernel,
+        ?callable $crontabRepositoryFactory = null,
     ) {
         parent::__construct();
+        $this->crontabRepositoryFactory = $crontabRepositoryFactory;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $finder = new PhpExecutableFinder();
         $phpExecutable = $finder->find();
-        $rootDir = $this->kernel->getProjectDir();
-        $caPathOrFile = CaBundle::getSystemCaRootBundlePath();
 
-        $cmd = "{$phpExecutable} -d openssl.cafile={$caPathOrFile} {$rootDir}/bin/console " . CronRunCommand::NAME;
-        $output->writeln('cmd: ' . $cmd);
-
-        $hasJob = false;
-        $crontabJob = null;
-        $crontabRepository = new CrontabRepository(new CrontabAdapter());
-        foreach ($crontabRepository->getJobs() as $job) {
-            /** @var CrontabJob $job */
-            if ($job->getTaskCommandLine() === $cmd) {
-                $hasJob = true;
-                $crontabJob = $job;
-                break;
-            }
-        }
-        $output->writeln('find cronjob:');
-        dump($crontabJob);
-
-        if (!$hasJob) {
-            $crontabJob = new CrontabJob();
-            $crontabJob
-                ->setMinutes('*')
-                ->setHours('*')
-                ->setDayOfMonth('*')
-                ->setMonths('*')
-                ->setDayOfWeek('*')
-                ->setTaskCommandLine($cmd)
-            ;
+        if ($phpExecutable === false) {
+            $output->writeln('<error>找不到 PHP 可执行文件</error>');
+            return Command::FAILURE;
         }
 
-        if (null !== $crontabJob) {
-            $crontabJob->setEnabled(true);
-            $crontabRepository->addJob($crontabJob);
-        }
-        $crontabRepository->persist();
+        $projectDir = $this->kernel->getProjectDir();
+        $consolePath = $projectDir . '/bin/console';
 
-        return Command::SUCCESS;
+        if (!file_exists($consolePath)) {
+            $output->writeln('<error>找不到 console 文件</error>');
+            return Command::FAILURE;
+        }
+
+        // 创建 Crontab 任务
+        $job = new CrontabJob();
+        $job->setMinutes('*');
+        $job->setHours('*');
+        $job->setDayOfMonth('*');
+        $job->setMonths('*');
+        $job->setDayOfWeek('*');
+        $job->setTaskCommandLine(sprintf(
+            'cd %s && %s cron-job:run',
+            escapeshellarg($projectDir),
+            $phpExecutable
+        ));
+
+        // 使用工厂方法创建 CrontabRepository（主要用于测试）
+        if ($this->crontabRepositoryFactory !== null) {
+            $crontabRepository = ($this->crontabRepositoryFactory)();
+        } else {
+            $crontabRepository = new CrontabRepository(new CrontabAdapter());
+        }
+
+        try {
+            assert($crontabRepository instanceof CrontabRepository);
+            $crontabRepository->addJob($job);
+            $crontabRepository->persist();
+
+            $output->writeln('<info>Cron 任务已成功添加到 crontab</info>');
+            $output->writeln(sprintf('任务命令: <comment>%s</comment>', $job->getTaskCommandLine()));
+
+            return Command::SUCCESS;
+        } catch (\Exception $e) {
+            $output->writeln(sprintf('<error>添加 Cron 任务失败: %s</error>', $e->getMessage()));
+            return Command::FAILURE;
+        }
     }
 }

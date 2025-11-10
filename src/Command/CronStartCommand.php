@@ -16,7 +16,7 @@ use Tourze\LockServiceBundle\Service\LockService;
 use Tourze\Symfony\CronJob\Exception\CronJobException;
 
 #[AsCommand(name: self::NAME, description: '跑一个进程定时检查定时任务')]
-class CronStartCommand extends Command
+final class CronStartCommand extends Command
 {
     public const NAME = 'cron:start';
     final public const PID_FILE = '.cron-pid';
