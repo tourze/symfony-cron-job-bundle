@@ -28,10 +28,19 @@ class AddCronJobCommandTest extends TestCase
         $this->initializeCommand();
     }
 
-    private function initializeCommand(): void
+    private function initializeCommand(?string $projectDir = null): void
     {
+        // 如果未指定项目目录，创建临时目录
+        if ($projectDir === null) {
+            $projectDir = sys_get_temp_dir() . '/test_project_' . uniqid();
+            mkdir($projectDir, 0777, true);
+            mkdir($projectDir . '/bin', 0777, true);
+            // 创建一个空的 console 文件
+            touch($projectDir . '/bin/console');
+        }
+
         $kernel = $this->createMock(KernelInterface::class);
-        $kernel->method('getProjectDir')->willReturn(dirname(__DIR__, 4));
+        $kernel->method('getProjectDir')->willReturn($projectDir);
 
         // 创建模拟的 CrontabRepository 工厂
         $crontabRepositoryFactory = function (): CrontabRepository {
@@ -68,7 +77,11 @@ class AddCronJobCommandTest extends TestCase
     public function testKernelProjectDirIsUsed(): void
     {
         // 创建自定义的 kernel mock 以验证调用
-        $projectDir = dirname(__DIR__, 4); // 向上4级目录到项目根
+        // 创建临时目录和必需的文件
+        $projectDir = sys_get_temp_dir() . '/test_project_' . uniqid();
+        mkdir($projectDir, 0777, true);
+        mkdir($projectDir . '/bin', 0777, true);
+        touch($projectDir . '/bin/console');
 
         $kernel = $this->createMock(KernelInterface::class);
         $kernel->expects($this->once())
