@@ -24,7 +24,13 @@ final class CronRunCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $startTime = microtime(true);
+        $output->writeln(sprintf('<info>开始执行定时任务检查 [%s]</info>', date('Y-m-d H:i:s')));
+
         $this->cronTriggerService->triggerScheduledTasks();
+
+        $duration = round((microtime(true) - $startTime) * 1000, 2);
+        $output->writeln(sprintf('<info>✓ 定时任务检查完成，耗时: %s ms</info>', $duration));
 
         return Command::SUCCESS;
     }

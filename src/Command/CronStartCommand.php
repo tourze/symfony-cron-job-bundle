@@ -56,9 +56,15 @@ final class CronStartCommand extends Command
 
     private function executeNonBlockingMode(OutputInterface $output): int
     {
+        $output->writeln('<info>启动 Cron 调度器（非阻塞模式）...</info>');
+
         $this->validatePcntlExtension();
+        $output->writeln('  - PCNTL 扩展检查通过');
 
         $pidFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . self::PID_FILE;
+        $output->writeln(sprintf('  - PID 文件路径: <comment>%s</comment>', $pidFile));
+
+        $output->writeln('  - 正在创建子进程...');
         $pid = $this->forkProcess();
 
         if (0 !== $pid) {
@@ -87,11 +93,14 @@ final class CronStartCommand extends Command
 
     private function handleParentProcess(int $pid, string $pidFile, OutputInterface $output): int
     {
+        $output->writeln(sprintf('  - 子进程 PID: <comment>%d</comment>', $pid));
+
         if (false === file_put_contents($pidFile, $pid)) {
             throw new CronJobException('Unable to create process file.');
         }
 
-        $output->writeln(sprintf('<info>%s</info>', 'Cron scheduler started in non-blocking mode...'));
+        $output->writeln(sprintf('  - PID 文件已创建: <comment>%s</comment>', $pidFile));
+        $output->writeln(sprintf('<info>✓ Cron scheduler started in non-blocking mode...</info>'));
 
         return 0;
     }
@@ -140,7 +149,8 @@ final class CronStartCommand extends Command
         $intNow = (int) $now;
         $delaySeconds = 60 - ($intNow % 60) + $intNow - $now;
         $microseconds = $delaySeconds * 1e6;
-        $output->writeln('等待下一个分钟周期');
+        $nextMinute = date('Y-m-d H:i:s', (int) ($now + $delaySeconds));
+        $output->writeln(sprintf('等待下一个分钟周期 (下次执行: %s, 等待 %.2f 秒)', $nextMinute, $delaySeconds));
         usleep((int) $microseconds);
     }
 
@@ -159,25 +169,32 @@ final class CronStartCommand extends Command
     {
         $now = microtime(true);
         $lockKey = 'cron:run:' . (int) ($now / 60);
+        $timestamp = date('Y-m-d H:i:s', (int) $now);
+
+        $output->writeln('');
+        $output->writeln(sprintf('<info>[%s] 准备执行定时任务...</info>', $timestamp));
 
         try {
             $lock = $this->lockService->acquireLock($lockKey);
+            $output->writeln(sprintf('  - 获取分布式锁成功: <comment>%s</comment>', $lockKey));
         } catch (LockAcquisitionException $e) {
-            $output->writeln('其他进程正在执行Cron任务，跳过');
+            $output->writeln(sprintf('<comment>  - 其他进程正在执行Cron任务 (锁: %s)，跳过</comment>', $lockKey));
 
             return;
         }
 
         try {
-            $output->writeln('开始执行Cron任务');
+            $output->writeln('  - 开始执行任务...');
             $command->run($input, $output);
+            $output->writeln('  - 任务执行完成');
         } catch (\Exception $e) {
-            $output->writeln('执行Cron任务失败: ' . $e->getMessage());
+            $output->writeln(sprintf('<error>  - 执行Cron任务失败: %s</error>', $e->getMessage()));
         } finally {
             try {
                 $this->lockService->releaseLock($lockKey);
+                $output->writeln(sprintf('  - 释放分布式锁: <comment>%s</comment>', $lockKey));
             } catch (\Exception $e) {
-                $output->writeln('释放锁失败: ' . $e->getMessage());
+                $output->writeln(sprintf('<error>  - 释放锁失败: %s</error>', $e->getMessage()));
             }
         }
     }
@@ -186,11 +203,12 @@ final class CronStartCommand extends Command
     {
         $servicesResetter = $this->container->get('services_resetter');
         if (is_object($servicesResetter) && method_exists($servicesResetter, 'reset')) {
+            $output->writeln('  - 重置服务容器');
             $servicesResetter->reset();
         }
 
         $memoryUsage = memory_get_usage(true) / (1024 * 1024);
-        $output->writeln("当前内存使用量{$memoryUsage}MB");
+        $output->writeln(sprintf("  - 当前内存使用量: <comment>%.2f MB</comment> / %d MB", $memoryUsage, $this->mbLimit));
 
         if ($memoryUsage > $this->mbLimit) {
             throw new CronJobException("Memory limit exceeded: {$memoryUsage}MB > {$this->mbLimit}MB");

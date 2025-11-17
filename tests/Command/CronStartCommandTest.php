@@ -216,6 +216,7 @@ final class CronStartCommandTest extends AbstractCommandTestCase
         $this->assertStringContainsString('$lockKey = \'cron:run:\' . (int) ($now / 60);', $classSource);
         $this->assertStringContainsString('$this->lockService->acquireLock($lockKey)', $classSource);
         $this->assertStringContainsString('$this->lockService->releaseLock($lockKey)', $classSource);
-        $this->assertStringContainsString('其他进程正在执行Cron任务，跳过', $classSource);
+        $this->assertStringContainsString('其他进程正在执行Cron任务', $classSource);
+        $this->assertStringContainsString('跳过', $classSource);
     }
 }
